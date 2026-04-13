@@ -1,5 +1,5 @@
-import { seedStudentsIfEmpty } from '../db/seed';
 import { db } from '../db/client';
+import { seedTripPlannerIfEmpty } from '../db/seed';
 
 jest.mock('../db/client', () => ({
   db: {
@@ -10,7 +10,7 @@ jest.mock('../db/client', () => ({
 
 const mockDb = db as unknown as { select: jest.Mock; insert: jest.Mock };
 
-describe('seedStudentsIfEmpty', () => {
+describe('seedTripPlannerIfEmpty', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -21,7 +21,7 @@ describe('seedStudentsIfEmpty', () => {
     mockDb.select.mockReturnValue({ from: mockFrom });
     mockDb.insert.mockReturnValue({ values: mockValues });
 
-    await seedStudentsIfEmpty();
+    await seedTripPlannerIfEmpty();
 
     expect(mockDb.insert).toHaveBeenCalled();
     expect(mockValues).toHaveBeenCalledWith(
@@ -39,7 +39,7 @@ describe('seedStudentsIfEmpty', () => {
     ]);
     mockDb.select.mockReturnValue({ from: mockFrom });
 
-    await seedStudentsIfEmpty();
+    await seedTripPlannerIfEmpty();
 
     expect(mockDb.insert).not.toHaveBeenCalled();
   });

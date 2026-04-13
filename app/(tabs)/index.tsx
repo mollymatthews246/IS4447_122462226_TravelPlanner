@@ -1,4 +1,3 @@
-import StudentCard from '@/components/StudentCard';
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
 import { useRouter } from 'expo-router';
@@ -12,66 +11,68 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Student, StudentContext } from '../_layout';
+import { Trip, TripPlannerContext } from '../_layout';
 
 export default function IndexScreen() {
   const router = useRouter();
-  const context = useContext(StudentContext);
+  const context = useContext(TripPlannerContext);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedYear, setSelectedYear] = useState('All');
+  const [selectedDestination, setSelectedDestination] = useState('All');
 
   if (!context) return null;
 
-  const { students } = context;
+  const { trips } = context;
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const yearOptions = [
+
+  const destinationOptions = [
     'All',
-    ...Array.from(new Set(students.map((student: Student) => String(student.year)))).sort(
-      (a, b) => Number(a) - Number(b)
-    ),
+    ...Array.from(
+      new Set(trips.map((trip: Trip) => trip.destination))
+    ).sort(),
   ];
 
-  const filteredStudents = students.filter((student: Student) => {
+  const filteredTrips = trips.filter((trip: Trip) => {
     const matchesSearch =
       normalizedQuery.length === 0 ||
-      student.name.toLowerCase().includes(normalizedQuery) ||
-      student.major.toLowerCase().includes(normalizedQuery);
+      trip.title.toLowerCase().includes(normalizedQuery) ||
+      trip.destination.toLowerCase().includes(normalizedQuery) ||
+      (trip.notes ?? '').toLowerCase().includes(normalizedQuery);
 
-    const matchesYear =
-      selectedYear === 'All' || String(student.year) === selectedYear;
+    const matchesDestination =
+      selectedDestination === 'All' || trip.destination === selectedDestination;
 
-    return matchesSearch && matchesYear;
+    return matchesSearch && matchesDestination;
   });
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScreenHeader
-        title="Students"
-        subtitle={`${students.length} enrolled`}
+        title="Trips"
+        subtitle={`${trips.length} planned`}
       />
 
       <PrimaryButton
-        label="Add Student"
-        onPress={() => router.push({ pathname: '../add' })}
+        label="Add Trip"
+        onPress={() => router.push('../add')}
       />
 
       <TextInput
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search by name or major"
+        placeholder="Search by title, destination, or notes"
         style={styles.searchInput}
       />
 
       <View style={styles.filterRow}>
-        {yearOptions.map((year) => {
-          const isSelected = selectedYear === year;
+        {destinationOptions.map((destination) => {
+          const isSelected = selectedDestination === destination;
 
           return (
             <Pressable
-              key={year}
-              accessibilityLabel={`Filter by year ${year}`}
+              key={destination}
+              accessibilityLabel={`Filter by destination ${destination}`}
               accessibilityRole="button"
-              onPress={() => setSelectedYear(year)}
+              onPress={() => setSelectedDestination(destination)}
               style={[
                 styles.filterButton,
                 isSelected && styles.filterButtonSelected,
@@ -83,7 +84,7 @@ export default function IndexScreen() {
                   isSelected && styles.filterButtonTextSelected,
                 ]}
               >
-                {year}
+                {destination}
               </Text>
             </Pressable>
           );
@@ -94,11 +95,20 @@ export default function IndexScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       >
-        {filteredStudents.length === 0 ? (
-          <Text style={styles.emptyText}>No students match your filters</Text>
+        {filteredTrips.length === 0 ? (
+          <Text style={styles.emptyText}>No trips match your filters</Text>
         ) : (
-          filteredStudents.map((student: Student) => (
-            <StudentCard key={student.id} student={student} />
+          filteredTrips.map((trip: Trip) => (
+            <View key={trip.id} style={styles.card}>
+              <Text style={styles.cardTitle}>{trip.title}</Text>
+              <Text style={styles.cardSubtitle}>{trip.destination}</Text>
+              <Text style={styles.cardDates}>
+                {trip.startDate} - {trip.endDate}
+              </Text>
+              {trip.notes ? (
+                <Text style={styles.cardNotes}>{trip.notes}</Text>
+              ) : null}
+            </View>
           ))
         )}
       </ScrollView>
@@ -157,5 +167,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingTop: 8,
     textAlign: 'center',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    marginBottom: 12,
+    padding: 14,
+  },
+  cardTitle: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  cardSubtitle: {
+    color: '#334155',
+    fontSize: 15,
+    marginTop: 4,
+  },
+  cardDates: {
+    color: '#64748B',
+    fontSize: 14,
+    marginTop: 6,
+  },
+  cardNotes: {
+    color: '#475569',
+    fontSize: 14,
+    marginTop: 8,
   },
 });
