@@ -13,6 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trip, TripPlannerContext } from '../_layout';
 
+function formatIrishDate(dateString: string) {
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+}
+
 export default function IndexScreen() {
   const router = useRouter();
   const context = useContext(TripPlannerContext);
@@ -26,9 +31,7 @@ export default function IndexScreen() {
 
   const destinationOptions = [
     'All',
-    ...Array.from(
-      new Set(trips.map((trip: Trip) => trip.destination))
-    ).sort(),
+    ...Array.from(new Set(trips.map((trip: Trip) => trip.destination))).sort(),
   ];
 
   const filteredTrips = trips.filter((trip: Trip) => {
@@ -46,15 +49,9 @@ export default function IndexScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScreenHeader
-        title="Trips"
-        subtitle={`${trips.length} planned`}
-      />
+      <ScreenHeader title="Trips" subtitle={`${trips.length} planned`} />
 
-      <PrimaryButton
-        label="Add Trip"
-        onPress={() => router.push('../add')}
-      />
+      <PrimaryButton label="Add Trip" onPress={() => router.push('../add')} />
 
       <TextInput
         value={searchQuery}
@@ -103,7 +100,8 @@ export default function IndexScreen() {
               <Text style={styles.cardTitle}>{trip.title}</Text>
               <Text style={styles.cardSubtitle}>{trip.destination}</Text>
               <Text style={styles.cardDates}>
-                {trip.startDate} - {trip.endDate}
+                {formatIrishDate(trip.startDate)} -{' '}
+                {formatIrishDate(trip.endDate)}
               </Text>
               {trip.notes ? (
                 <Text style={styles.cardNotes}>{trip.notes}</Text>
