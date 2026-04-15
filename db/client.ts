@@ -20,6 +20,7 @@ sqlite.execSync(`
     start_date TEXT NOT NULL,
     end_date TEXT NOT NULL,
     notes TEXT
+    image_uri TEXT
   );
 
   CREATE TABLE IF NOT EXISTS categories (
