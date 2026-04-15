@@ -6,7 +6,7 @@ import { trips as tripsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Activity, Trip, TripPlannerContext } from '../_layout';
 
@@ -71,7 +71,11 @@ export default function TripDetail() {
               );
 
               return (
-                <View key={activity.id} style={styles.activityCard}>
+                <Pressable
+                  key={activity.id}
+                  style={styles.activityCard}
+                  onPress={() => router.push(`/activities/${activity.id}/edit`)}
+                >
                   <Text style={styles.activityTitle}>{activity.title}</Text>
                   <Text style={styles.activityMeta}>
                     {formatIrishDate(activity.activityDate)} • {activity.duration} hrs
@@ -82,7 +86,7 @@ export default function TripDetail() {
                   {activity.notes ? (
                     <Text style={styles.activityNotes}>{activity.notes}</Text>
                   ) : null}
-                </View>
+                </Pressable>
               );
             })
           )}
