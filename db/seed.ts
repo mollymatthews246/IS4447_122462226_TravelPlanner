@@ -72,8 +72,31 @@ export async function seedTripPlannerIfEmpty() {
       color: '#A855F7',
       icon: 'coffee',
     },
+    {
+      userId,
+      name: 'Shopping',
+      color: '#EC4899',
+      icon: 'shopping-bag',
+    },
+    {
+      userId,
+      name: 'Transport',
+      color: '#6366F1',
+      icon: 'bus',
+    },
+    {
+      userId,
+      name: 'Culture',
+      color: '#EAB308',
+      icon: 'landmark',
+    },
+    {
+      userId,
+      name: 'Nightlife',
+      color: '#8B5CF6',
+      icon: 'music',
+    },
   ]);
-
   const seededTrips = await db.select().from(trips);
   const seededCategories = await db.select().from(categories);
 

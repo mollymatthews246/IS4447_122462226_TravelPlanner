@@ -6,9 +6,9 @@ import { trips as tripsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trip, TripPlannerContext } from '../_layout';
+import { Activity, Trip, TripPlannerContext } from '../_layout';
 
 function formatIrishDate(dateString: string) {
   const [year, month, day] = dateString.split('-');
@@ -22,11 +22,15 @@ export default function TripDetail() {
 
   if (!context) return null;
 
-  const { trips, setTrips } = context;
+  const { trips, setTrips, activities, categories } = context;
 
   const trip = trips.find((t: Trip) => t.id === Number(id));
 
   if (!trip) return null;
+
+  const tripActivities = activities.filter(
+    (activity: Activity) => activity.tripId === trip.id
+  );
 
   const deleteTrip = async () => {
     await db.delete(tripsTable).where(eq(tripsTable.id, Number(id)));
@@ -38,40 +42,78 @@ export default function TripDetail() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScreenHeader title={trip.title} subtitle="Trip details" />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <ScreenHeader title={trip.title} subtitle="Trip details" />
 
-      <View style={styles.tags}>
-        <InfoTag label="Destination" value={trip.destination} />
-        <InfoTag
-          label="Dates"
-          value={`${formatIrishDate(trip.startDate)} - ${formatIrishDate(
-            trip.endDate
-          )}`}
-        />
-      </View>
+        <View style={styles.tags}>
+          <InfoTag label="Destination" value={trip.destination} />
+          <InfoTag
+            label="Dates"
+            value={`${formatIrishDate(trip.startDate)} - ${formatIrishDate(
+              trip.endDate
+            )}`}
+          />
+        </View>
 
-      {trip.notes ? <Text style={styles.notes}>{trip.notes}</Text> : null}
+        {trip.notes ? <Text style={styles.notes}>{trip.notes}</Text> : null}
 
-      <PrimaryButton
-        label="Edit Trip"
-        onPress={() =>
-          router.push({
-            pathname: '/trips/[id]/edit',
-            params: { id },
-          })
-        }
-      />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Activities</Text>
 
-      <View style={styles.buttonSpacing}>
-        <PrimaryButton label="Delete Trip" variant="secondary" onPress={deleteTrip} />
-      </View>
-      <View style={styles.buttonSpacing}>
+          {tripActivities.length === 0 ? (
+            <Text style={styles.emptyText}>
+              No activities added yet. Add your first activity for this trip.
+            </Text>
+          ) : (
+            tripActivities.map((activity) => {
+              const category = categories.find(
+                (cat) => cat.id === activity.categoryId
+              );
+
+              return (
+                <View key={activity.id} style={styles.activityCard}>
+                  <Text style={styles.activityTitle}>{activity.title}</Text>
+                  <Text style={styles.activityMeta}>
+                    {formatIrishDate(activity.activityDate)} • {activity.duration} hrs
+                  </Text>
+                  <Text style={styles.activityMeta}>
+                    Category: {category?.name ?? 'Unknown'} • {activity.status}
+                  </Text>
+                  {activity.notes ? (
+                    <Text style={styles.activityNotes}>{activity.notes}</Text>
+                  ) : null}
+                </View>
+              );
+            })
+          )}
+
+          <PrimaryButton
+            label="Add Activity"
+            onPress={() => router.push(`/activities/add?tripId=${trip.id}`)}
+          />
+        </View>
+
         <PrimaryButton
-          label="Back to Home"
-          variant="secondary"
-          onPress={() => router.push('/')}
+          label="Edit Trip"
+          onPress={() => router.push(`/trips/${id}/edit`)}
         />
-      </View>
+
+        <View style={styles.buttonSpacing}>
+          <PrimaryButton
+            label="Delete Trip"
+            variant="secondary"
+            onPress={deleteTrip}
+          />
+        </View>
+
+        <View style={styles.buttonSpacing}>
+          <PrimaryButton
+            label="Back to Home"
+            variant="secondary"
+            onPress={() => router.push('/')}
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -95,6 +137,45 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 18,
     padding: 14,
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    marginBottom: 18,
+    padding: 14,
+  },
+  sectionTitle: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  emptyText: {
+    color: '#64748B',
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  activityCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    marginBottom: 10,
+    padding: 12,
+  },
+  activityTitle: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  activityMeta: {
+    color: '#64748B',
+    fontSize: 14,
+    marginTop: 4,
+    textTransform: 'capitalize',
+  },
+  activityNotes: {
+    color: '#475569',
+    fontSize: 14,
+    marginTop: 6,
   },
   buttonSpacing: {
     marginTop: 10,
