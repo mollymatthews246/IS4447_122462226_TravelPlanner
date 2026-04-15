@@ -49,7 +49,10 @@ export default function IndexScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScreenHeader title="Trips" subtitle={`${trips.length} planned`} />
+      <ScreenHeader
+        title="Travel Planner"
+        subtitle={`${trips.length} trips planned`}
+      />
 
       <PrimaryButton label="Add Trip" onPress={() => router.push('../add')} />
 
@@ -96,7 +99,13 @@ export default function IndexScreen() {
           <Text style={styles.emptyText}>No trips match your filters</Text>
         ) : (
           filteredTrips.map((trip: Trip) => (
-            <View key={trip.id} style={styles.card}>
+            <Pressable
+              key={trip.id}
+              style={styles.card}
+              accessibilityRole="button"
+              accessibilityLabel={`Open trip ${trip.title}`}
+              onPress={() => router.push(`/trips/${trip.id}`)}
+            >
               <Text style={styles.cardTitle}>{trip.title}</Text>
               <Text style={styles.cardSubtitle}>{trip.destination}</Text>
               <Text style={styles.cardDates}>
@@ -106,7 +115,7 @@ export default function IndexScreen() {
               {trip.notes ? (
                 <Text style={styles.cardNotes}>{trip.notes}</Text>
               ) : null}
-            </View>
+            </Pressable>
           ))
         )}
       </ScrollView>

@@ -36,8 +36,8 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <TripPlannerContext.Provider value={{ trips, setTrips }}>
-      <Stack />
-    </TripPlannerContext.Provider>
+  <TripPlannerContext.Provider value={{ trips, setTrips }}>
+    <Stack screenOptions={{ headerShown: false }} />
+  </TripPlannerContext.Provider>
   );
 }
