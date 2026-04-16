@@ -88,13 +88,18 @@ export default function TargetsScreen() {
               target.metricType === 'duration' ? 'hours' : 'activities';
 
             return (
-              <Pressable
-                key={target.id}
-                style={styles.card}
-                accessibilityRole="button"
-                accessibilityLabel="Edit target"
-                onPress={() => router.push(`/targets/${target.id}/edit`)}
-              >
+                <Pressable
+                    key={target.id}
+                    style={styles.card}
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit target"
+                    onPress={() =>
+                        router.push({
+                        pathname: '/targets/[id]/edit',
+                        params: { id: String(target.id) },
+                        })
+                    }
+                >
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>
                     {category?.name ?? 'All Categories'} Target

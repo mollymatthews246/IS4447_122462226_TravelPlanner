@@ -10,7 +10,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TripPlannerContext } from '../_layout';
 
 export default function AddActivity() {
-  const { tripId } = useLocalSearchParams<{ tripId: string }>();
+  const { tripId, activityDate: selectedDate } = useLocalSearchParams<{
+    tripId: string;
+    activityDate?: string;
+  }>();
+
   const router = useRouter();
   const context = useContext(TripPlannerContext);
 
@@ -18,7 +22,7 @@ export default function AddActivity() {
     context?.categories[0]?.id ?? null
   );
   const [title, setTitle] = useState('');
-  const [activityDate, setActivityDate] = useState('');
+  const [activityDate, setActivityDate] = useState(selectedDate ?? '');
   const [duration, setDuration] = useState('');
   const [count, setCount] = useState('1');
   const [notes, setNotes] = useState('');
@@ -30,10 +34,17 @@ export default function AddActivity() {
   const { categories, setActivities } = context;
 
   const saveActivity = async () => {
-    if (!title.trim() || !activityDate.trim() || !duration.trim() || !selectedCategoryId) {
+    if (
+      !title.trim() ||
+      !activityDate.trim() ||
+      !duration.trim() ||
+      !selectedCategoryId
+    ) {
       setError('Please fill in the activity title, date, duration and category.');
       return;
     }
+
+    setError('');
 
     await db.insert(activitiesTable).values({
       tripId: Number(tripId),
@@ -54,11 +65,21 @@ export default function AddActivity() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Add Activity" subtitle="Add something planned for this trip." />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          title="Add Activity"
+          subtitle="Add something planned for this trip."
+        />
 
         <View style={styles.form}>
-          <FormField label="Activity Title" value={title} onChangeText={setTitle} />
+          <FormField
+            label="Activity Title"
+            value={title}
+            onChangeText={setTitle}
+          />
 
           <FormField
             label="Date"
