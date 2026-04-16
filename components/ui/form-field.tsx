@@ -1,21 +1,29 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-type Props = {
+type FormFieldProps = {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  secureTextEntry?: boolean;
 };
 
-export default function FormField({ label, value, onChangeText, placeholder }: Props) {
+export default function FormField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry = false,
+}: FormFieldProps) {
   return (
-    <View style={styles.wrapper}>
+    <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
+
       <TextInput
-        accessibilityLabel={label}
-        placeholder={placeholder ?? label}
         value={value}
         onChangeText={onChangeText}
+        placeholder={placeholder}
+        secureTextEntry={secureTextEntry}
         style={styles.input}
       />
     </View>
@@ -23,20 +31,21 @@ export default function FormField({ label, value, onChangeText, placeholder }: P
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    marginBottom: 12,
+  field: {
+    marginBottom: 14,
   },
   label: {
-    color: '#334155',
-    fontSize: 13,
+    color: '#0F172A',
+    fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderColor: '#CBD5E1',
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
+    color: '#0F172A',
     fontSize: 15,
     paddingHorizontal: 12,
     paddingVertical: 10,
