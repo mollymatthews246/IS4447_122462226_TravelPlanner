@@ -2,6 +2,7 @@ import { db } from '@/db/client';
 import {
   activities as activitiesTable,
   categories as categoriesTable,
+  targets as targetsTable,
   trips as tripsTable,
 } from '@/db/schema';
 import { seedTripPlannerIfEmpty } from '@/db/seed';
@@ -38,13 +39,30 @@ export type Category = {
   icon: string;
 };
 
+export type Target = {
+  id: number;
+  userId: number;
+  tripId: number | null;
+  categoryId: number | null;
+  type: string;
+  metricType: string;
+  targetValue: number;
+  startDate: string;
+  endDate: string;
+};
+
 type TripPlannerContextType = {
   trips: Trip[];
   setTrips: React.Dispatch<React.SetStateAction<Trip[]>>;
+
   activities: Activity[];
   setActivities: React.Dispatch<React.SetStateAction<Activity[]>>;
+
   categories: Category[];
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+
+  targets: Target[];
+  setTargets: React.Dispatch<React.SetStateAction<Target[]>>;
 };
 
 export const TripPlannerContext =
@@ -54,6 +72,7 @@ export default function RootLayout() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [targets, setTargets] = useState<Target[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -62,10 +81,12 @@ export default function RootLayout() {
       const tripRows = await db.select().from(tripsTable);
       const activityRows = await db.select().from(activitiesTable);
       const categoryRows = await db.select().from(categoriesTable);
+      const targetRows = await db.select().from(targetsTable);
 
       setTrips(tripRows);
       setActivities(activityRows);
       setCategories(categoryRows);
+      setTargets(targetRows);
     };
 
     void loadData();
@@ -80,6 +101,8 @@ export default function RootLayout() {
         setActivities,
         categories,
         setCategories,
+        targets,
+        setTargets,
       }}
     >
       <Stack screenOptions={{ headerShown: false }} />
