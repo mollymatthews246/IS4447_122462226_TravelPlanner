@@ -2,7 +2,7 @@ import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
 import { useRouter } from 'expo-router';
 import { useContext } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TripPlannerContext } from '../_layout';
 
@@ -54,7 +54,13 @@ export default function CategoriesScreen() {
           <Text style={styles.emptyText}>No categories yet.</Text>
         ) : (
           categories.map((category) => (
-            <View key={category.id} style={styles.card}>
+            <Pressable
+              key={category.id}
+              style={styles.card}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit category ${category.name}`}
+              onPress={() => router.push(`/categories/${category.id}/edit`)}
+            >
               <View
                 style={[
                   styles.colorDot,
@@ -64,12 +70,13 @@ export default function CategoriesScreen() {
 
               <View style={styles.cardText}>
                 <Text style={styles.cardTitle}>{category.name}</Text>
+                <Text style={styles.cardSubtitle}>Tap to edit</Text>
               </View>
 
               <Text style={styles.iconText}>
                 {displayCategoryIcon(category.icon)}
               </Text>
-            </View>
+            </Pressable>
           ))
         )}
       </ScrollView>
@@ -115,6 +122,11 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontSize: 17,
     fontWeight: '700',
+  },
+  cardSubtitle: {
+    color: '#64748B',
+    fontSize: 13,
+    marginTop: 3,
   },
   iconText: {
     fontSize: 24,
