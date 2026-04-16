@@ -7,7 +7,9 @@ import {
   users as usersTable,
 } from '@/db/schema';
 import { seedTripPlannerIfEmpty } from '@/db/seed';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { eq } from 'drizzle-orm';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { createContext, useEffect, useState } from 'react';
 
 export type User = {
@@ -82,7 +84,7 @@ export const TripPlannerContext =
 
 export default function RootLayout() {
   const router = useRouter();
-  const segments = useSegments();
+  const pathname = usePathname();
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -92,41 +94,84 @@ export default function RootLayout() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [targets, setTargets] = useState<Target[]>([]);
 
+  const loadUserFromStorage = async () => {
+    const storedUserId = await AsyncStorage.getItem('loggedInUserId');
+
+    console.log('STORED USER ID IN LAYOUT:', storedUserId);
+
+    if (!storedUserId) {
+      setCurrentUser(null);
+      return null;
+    }
+
+    const userRows = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, Number(storedUserId)));
+
+    if (userRows.length > 0) {
+      setCurrentUser(userRows[0]);
+      console.log('CURRENT USER LOADED:', userRows[0]);
+      return userRows[0];
+    }
+
+    await AsyncStorage.removeItem('loggedInUserId');
+    setCurrentUser(null);
+    return null;
+  };
+
   useEffect(() => {
     const loadData = async () => {
-      await seedTripPlannerIfEmpty();
+      try {
+        await seedTripPlannerIfEmpty();
 
-      await db.select().from(usersTable);
-      const tripRows = await db.select().from(tripsTable);
-      const activityRows = await db.select().from(activitiesTable);
-      const categoryRows = await db.select().from(categoriesTable);
-      const targetRows = await db.select().from(targetsTable);
+        await loadUserFromStorage();
 
-      setCurrentUser(null);
-      setTrips(tripRows);
-      setActivities(activityRows);
-      setCategories(categoryRows);
-      setTargets(targetRows);
+        const tripRows = await db.select().from(tripsTable);
+        const activityRows = await db.select().from(activitiesTable);
+        const categoryRows = await db.select().from(categoriesTable);
+        const targetRows = await db.select().from(targetsTable);
 
-      setHasLoaded(true);
+        setTrips(tripRows);
+        setActivities(activityRows);
+        setCategories(categoryRows);
+        setTargets(targetRows);
+      } catch (error) {
+        console.log('LOAD DATA ERROR:', error);
+      } finally {
+        setHasLoaded(true);
+      }
     };
 
     void loadData();
   }, []);
 
   useEffect(() => {
-    if (!hasLoaded) return;
+    const checkAuth = async () => {
+      if (!hasLoaded) return;
 
-    const isAuthScreen = segments[0] === '(auth)';
+      const isAuthPage = pathname === '/login' || pathname === '/register';
 
-    if (!currentUser && !isAuthScreen) {
-      router.replace('/login');
-    }
+      console.log('PATHNAME:', pathname);
+      console.log('CURRENT USER:', currentUser);
 
-    if (currentUser && isAuthScreen) {
-      router.replace('/');
-    }
-  }, [currentUser, hasLoaded, router, segments]);
+      if (!currentUser && !isAuthPage) {
+        const storedUser = await loadUserFromStorage();
+
+        if (!storedUser) {
+          router.replace('/login');
+        }
+
+        return;
+      }
+
+      if (currentUser && isAuthPage) {
+        router.replace('/');
+      }
+    };
+
+    void checkAuth();
+  }, [currentUser, hasLoaded, pathname]);
 
   if (!hasLoaded) {
     return null;

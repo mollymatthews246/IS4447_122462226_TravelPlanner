@@ -1,29 +1,35 @@
+import { TripPlannerContext } from '@/app/_layout';
 import { db } from '@/db/client';
 import { users as usersTable } from '@/db/schema';
+import { hashPassword } from '@/utils/hashPassword';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { hashPassword } from '../utils/hashPassword';
 
 export default function Register() {
   const router = useRouter();
+  const context = useContext(TripPlannerContext);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleRegister = async () => {
-    if (!name || !email || !password) {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail || !password) {
       Alert.alert('Missing details', 'Please fill in all fields.');
       return;
     }
@@ -36,25 +42,34 @@ export default function Register() {
     try {
       const hashedPassword = await hashPassword(password);
 
-      await db.insert(usersTable).values({
-        name,
-        email,
-        password: hashedPassword,
-      });
+      const insertedUser = await db
+        .insert(usersTable)
+        .values({
+          name: cleanName,
+          email: cleanEmail,
+          password: hashedPassword,
+        })
+        .returning();
 
-      const allUsers = await db.select().from(usersTable);
-      console.log('USERS IN DATABASE:', allUsers);
+      const newUser = insertedUser[0];
+
+      await AsyncStorage.setItem('loggedInUserId', String(newUser.id));
+
+      context?.setCurrentUser(newUser);
+
+      const savedUserId = await AsyncStorage.getItem('loggedInUserId');
+      console.log('SAVED USER ID AFTER REGISTER:', savedUserId);
 
       Alert.alert('Success', 'Account created successfully.');
 
-      router.replace('/(auth)/login');
+      router.replace('/');
     } catch (error: any) {
-      console.log(error);
+      console.log('REGISTER ERROR:', error);
 
-      const errorMessage = String(error?.message || error);
+      const errorMessage = String(error?.message || error).toLowerCase();
 
       if (
-        errorMessage.includes('UNIQUE constraint failed') ||
+        errorMessage.includes('unique constraint failed') ||
         errorMessage.includes('users.email')
       ) {
         Alert.alert(
@@ -77,7 +92,7 @@ export default function Register() {
         'Users have been printed in the VS Code terminal.'
       );
     } catch (error) {
-      console.log(error);
+      console.log('CHECK USERS ERROR:', error);
       Alert.alert('Error', 'Could not read users.');
     }
   };
@@ -98,6 +113,7 @@ export default function Register() {
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
+            autoCorrect={false}
           />
 
           <Text style={styles.label}>Email</Text>
@@ -107,6 +123,7 @@ export default function Register() {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
           />
 
@@ -117,6 +134,8 @@ export default function Register() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
           />
 
           <Pressable style={styles.button} onPress={handleRegister}>
@@ -127,7 +146,7 @@ export default function Register() {
             <Text style={styles.testButtonText}>Check Users</Text>
           </Pressable>
 
-          <Pressable onPress={() => router.push('/(auth)/login')}>
+          <Pressable onPress={() => router.push('/login')}>
             <Text style={styles.loginText}>
               Already have an account? Login
             </Text>

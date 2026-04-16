@@ -1,30 +1,34 @@
+import { TripPlannerContext } from '@/app/_layout';
 import { db } from '@/db/client';
 import { users as usersTable } from '@/db/schema';
+import { hashPassword } from '@/utils/hashPassword';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { eq } from 'drizzle-orm';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { hashPassword } from '../utils/hashPassword';
 
 export default function Login() {
   const router = useRouter();
+  const context = useContext(TripPlannerContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !password) {
       Alert.alert('Missing details', 'Please enter your email and password.');
       return;
     }
@@ -35,7 +39,7 @@ export default function Login() {
       const result = await db
         .select()
         .from(usersTable)
-        .where(eq(usersTable.email, email));
+        .where(eq(usersTable.email, cleanEmail));
 
       const user = result[0];
 
@@ -51,9 +55,14 @@ export default function Login() {
 
       await AsyncStorage.setItem('loggedInUserId', String(user.id));
 
-      router.replace('/(tabs)');
+      context?.setCurrentUser(user);
+
+      const savedUserId = await AsyncStorage.getItem('loggedInUserId');
+      console.log('SAVED USER ID:', savedUserId);
+
+      router.replace('/');
     } catch (error) {
-      console.log(error);
+      console.log('LOGIN ERROR:', error);
       Alert.alert('Error', 'Could not log in.');
     }
   };
@@ -75,6 +84,7 @@ export default function Login() {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
           />
 
@@ -85,13 +95,15 @@ export default function Login() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
           />
 
           <Pressable style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Login</Text>
           </Pressable>
 
-          <Pressable onPress={() => router.push('/(auth)/register')}>
+          <Pressable onPress={() => router.push('/register')}>
             <Text style={styles.registerText}>
               Don&apos;t have an account? Register
             </Text>
