@@ -1,6 +1,4 @@
-import InfoTag from '@/components/ui/info-tag';
-import PrimaryButton from '@/components/ui/primary-button';
-import ScreenHeader from '@/components/ui/screen-header';
+import { Colors } from '@/constants/theme';
 import { db } from '@/db/client';
 import { trips as tripsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -10,9 +8,28 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Activity, Trip, TripPlannerContext } from '../../context/trip-planner-context';
 
-function formatIrishDate(dateString: string) {
-  const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
+function formatShortDate(dateString: string): string {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+}
+
+function getDayCount(start: string, end: string): number {
+  const [sy, sm, sd] = start.split('-').map(Number);
+  const [ey, em, ed] = end.split('-').map(Number);
+  const s = new Date(sy, sm - 1, sd);
+  const e = new Date(ey, em - 1, ed);
+  return Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function formatActivityDate(dateString: string): string {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 }
 
 export default function TripDetail() {
@@ -23,7 +40,6 @@ export default function TripDetail() {
   if (!context) return null;
 
   const { trips, setTrips, activities, categories } = context;
-
   const trip = trips.find((t: Trip) => t.id === Number(id));
 
   if (!trip) return null;
@@ -32,9 +48,16 @@ export default function TripDetail() {
     (activity: Activity) => activity.tripId === trip.id
   );
 
+  const confirmedCount = tripActivities.filter(
+    (a) => a.status === 'confirmed'
+  ).length;
+
+  const plannedHours = tripActivities
+    .filter((a) => a.status === 'planned')
+    .reduce((sum, a) => sum + (a.duration ?? 0), 0);
+
   const deleteTrip = async () => {
     await db.delete(tripsTable).where(eq(tripsTable.id, Number(id)));
-
     const rows = await db.select().from(tripsTable);
     setTrips(rows);
     router.back();
@@ -42,81 +65,178 @@ export default function TripDetail() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <ScreenHeader title={trip.title} subtitle="Trip details" />
-
-        <View style={styles.tags}>
-          <InfoTag label="Destination" value={trip.destination} />
-          <InfoTag
-            label="Dates"
-            value={`${formatIrishDate(trip.startDate)} - ${formatIrishDate(
-              trip.endDate
-            )}`}
-          />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Bar */}
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} style={styles.topBarButton}>
+            <Text style={styles.topBarIcon}>‹</Text>
+          </Pressable>
+          <View style={styles.topBarRight}>
+            <Pressable
+              onPress={() => router.push(`/trips/${id}/edit`)}
+              style={styles.topBarButton}
+            >
+              <Text style={styles.topBarIcon}>✎</Text>
+            </Pressable>
+            <Pressable onPress={deleteTrip} style={styles.topBarButton}>
+              <Text style={styles.topBarIcon}>🗑</Text>
+            </Pressable>
+          </View>
         </View>
 
-        {trip.notes ? <Text style={styles.notes}>{trip.notes}</Text> : null}
+        {/* Destination Badge */}
+        <View style={styles.destinationBadge}>
+          <Text style={styles.destinationPin}>📍</Text>
+          <Text style={styles.destinationText}>
+            {trip.destination.toUpperCase()}
+          </Text>
+        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activities</Text>
+        {/* Trip Title */}
+        <Text style={styles.tripTitle}>{trip.title}</Text>
 
-          {tripActivities.length === 0 ? (
+        {/* Dates & Duration */}
+        <View style={styles.dateRow}>
+          <Text style={styles.dateIcon}>📅</Text>
+          <View>
+            <Text style={styles.dateLabel}>DATES</Text>
+            <Text style={styles.dateValue}>
+              {formatShortDate(trip.startDate)} –{' '}
+              {formatShortDate(trip.endDate)}
+            </Text>
+          </View>
+          <View style={styles.dateDivider} />
+          <View>
+            <Text style={styles.dateLabel}>DURATION</Text>
+            <Text style={styles.dateValue}>
+              {getDayCount(trip.startDate, trip.endDate)} days
+            </Text>
+          </View>
+        </View>
+
+        {/* Notes */}
+        {trip.notes ? (
+          <View style={styles.notesCard}>
+            <Text style={styles.notesQuote}>"</Text>
+            <Text style={styles.notesText}>{trip.notes}</Text>
+          </View>
+        ) : null}
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{tripActivities.length}</Text>
+            <Text style={styles.statLabel}>ACTIVITIES</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{confirmedCount}</Text>
+            <Text style={styles.statLabel}>CONFIRMED</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{plannedHours}h</Text>
+            <Text style={styles.statLabel}>PLANNED</Text>
+          </View>
+        </View>
+
+        {/* Activities Section */}
+        <View style={styles.activitiesHeader}>
+          <Text style={styles.activitiesTitle}>Activities</Text>
+          <Pressable
+            style={styles.addButton}
+            onPress={() => router.push(`/activities/add?tripId=${trip.id}`)}
+          >
+            <Text style={styles.addButtonText}>+ Add</Text>
+          </Pressable>
+        </View>
+
+        {tripActivities.length === 0 ? (
+          <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>
               No activities added yet. Add your first activity for this trip.
             </Text>
-          ) : (
-            tripActivities.map((activity) => {
-              const category = categories.find(
-                (cat) => cat.id === activity.categoryId
-              );
+          </View>
+        ) : (
+          tripActivities.map((activity) => {
+            const category = categories.find(
+              (cat) => cat.id === activity.categoryId
+            );
+            const borderColor = category?.color ?? '#CBD5E1';
+            const isConfirmed = activity.status === 'confirmed';
 
-              return (
-                <Pressable
-                  key={activity.id}
-                  style={styles.activityCard}
-                  onPress={() => router.push(`/activities/${activity.id}/edit`)}
-                >
+            return (
+              <Pressable
+                key={activity.id}
+                style={[
+                  styles.activityCard,
+                  { borderLeftColor: borderColor },
+                ]}
+                onPress={() => router.push(`/activities/${activity.id}/edit`)}
+              >
+                <View style={styles.activityTop}>
                   <Text style={styles.activityTitle}>{activity.title}</Text>
-                  <Text style={styles.activityMeta}>
-                    {formatIrishDate(activity.activityDate)} • {activity.duration} hrs
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor: isConfirmed ? '#ECFDF5' : '#FFF7ED',
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.statusDot,
+                        {
+                          backgroundColor: isConfirmed
+                            ? '#22C55E'
+                            : '#F97316',
+                        },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.statusText,
+                        {
+                          color: isConfirmed ? '#16A34A' : '#EA580C',
+                        },
+                      ]}
+                    >
+                      {activity.status.charAt(0).toUpperCase() +
+                        activity.status.slice(1)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.activityMeta}>
+                  <Text style={styles.metaText}>
+                    📅 {formatActivityDate(activity.activityDate)}
                   </Text>
-                  <Text style={styles.activityMeta}>
-                    Category: {category?.name ?? 'Unknown'} • {activity.status}
+                  <Text style={styles.metaText}>
+                    ⏱ {activity.duration}h
                   </Text>
-                  {activity.notes ? (
-                    <Text style={styles.activityNotes}>{activity.notes}</Text>
+                  {category ? (
+                    <Text style={styles.metaText}>
+                      {category.icon} {category.name}
+                    </Text>
                   ) : null}
-                </Pressable>
-              );
-            })
-          )}
+                </View>
 
-          <PrimaryButton
-            label="Add Activity"
-            onPress={() => router.push(`/activities/add?tripId=${trip.id}`)}
-          />
-        </View>
+                {activity.notes ? (
+                  <View style={styles.activityNotesBar}>
+                    <Text style={styles.activityNotesText}>
+                      {activity.notes}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })
+        )}
 
-        <PrimaryButton
-          label="Edit Trip"
-          onPress={() => router.push(`/trips/${id}/edit`)}
-        />
-
-        <View style={styles.buttonSpacing}>
-          <PrimaryButton
-            label="Delete Trip"
-            variant="secondary"
-            onPress={deleteTrip}
-          />
-        </View>
-
-        <View style={styles.buttonSpacing}>
-          <PrimaryButton
-            label="Back to Home"
-            variant="secondary"
-            onPress={() => router.push('/')}
-          />
-        </View>
+        {/* Bottom spacing */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -126,62 +246,269 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#F8FAFC',
     flex: 1,
+  },
+  content: {
     padding: 20,
+    paddingBottom: 40,
   },
-  tags: {
+
+  // Top Bar
+  topBar: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 18,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  notes: {
+  topBarRight: {
+    flexDirection: 'row',
+  },
+  topBarButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    color: '#475569',
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 18,
-    padding: 14,
+    height: 40,
+    width: 40,
+    marginLeft: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  section: {
+  topBarIcon: {
+    fontSize: 18,
+  },
+
+  // Destination Badge
+  destinationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF1EC',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 10,
+  },
+  destinationPin: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  destinationText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C2410C',
+    letterSpacing: 0.5,
+  },
+
+  // Trip Title
+  tripTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 14,
+  },
+
+  // Dates
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dateIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  dateLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.light.icon,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  dateValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  dateDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 16,
+  },
+
+  // Notes
+  notesCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    marginBottom: 18,
-    padding: 14,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  sectionTitle: {
-    color: '#0F172A',
-    fontSize: 18,
+  notesQuote: {
+    fontSize: 32,
+    color: '#D4A574',
     fontWeight: '700',
+    lineHeight: 32,
+    marginBottom: 4,
+  },
+  notesText: {
+    fontSize: 15,
+    color: '#475569',
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+
+  // Stats
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  statNumber: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.light.icon,
+    letterSpacing: 0.5,
+  },
+
+  // Activities Header
+  activitiesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  activitiesTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  addButton: {
+    backgroundColor: Colors.light.tint,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Activity Cards
+  activityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderLeftWidth: 4,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  activityTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  emptyText: {
-    color: '#64748B',
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  activityCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    marginBottom: 10,
-    padding: 12,
-  },
   activityTitle: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
+    color: Colors.light.text,
+    flex: 1,
+    marginRight: 8,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginRight: 5,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   activityMeta: {
-    color: '#64748B',
-    fontSize: 14,
-    marginTop: 4,
-    textTransform: 'capitalize',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 4,
   },
-  activityNotes: {
-    color: '#475569',
-    fontSize: 14,
+  metaText: {
+    fontSize: 13,
+    color: Colors.light.icon,
+    marginRight: 14,
+    marginBottom: 4,
+  },
+  activityNotesBar: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     marginTop: 6,
   },
-  buttonSpacing: {
-    marginTop: 10,
+  activityNotesText: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
+  },
+
+  // Empty state
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 20,
+    marginBottom: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  emptyText: {
+    color: Colors.light.icon,
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  bottomSpacer: {
+    height: 20,
   },
 });

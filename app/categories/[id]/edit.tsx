@@ -103,7 +103,10 @@ export default function EditCategory() {
       })
       .where(eq(categoriesTable.id, Number(id)));
 
-    const rows = await db.select().from(categoriesTable);
+    const rows = await db
+  .select()
+  .from(categoriesTable)
+  .where(eq(categoriesTable.userId, currentUser!.id));
     setCategories(rows);
 
     router.back();
@@ -112,7 +115,10 @@ export default function EditCategory() {
   const deleteCategory = async () => {
     await db.delete(categoriesTable).where(eq(categoriesTable.id, Number(id)));
 
-    const rows = await db.select().from(categoriesTable);
+    const rows = await db
+  .select()
+  .from(categoriesTable)
+  .where(eq(categoriesTable.userId, currentUser!.id));
     setCategories(rows);
 
     router.back();
