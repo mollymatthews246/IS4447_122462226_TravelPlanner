@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Activity, Trip, TripPlannerContext } from '../_layout';
+import { Activity, Trip, TripPlannerContext } from '../../context/trip-planner-context';
 
 function formatIrishDate(dateString: string) {
   const [year, month, day] = dateString.split('-');

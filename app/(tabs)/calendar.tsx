@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trip, TripPlannerContext } from '../_layout';
+import { Trip, TripPlannerContext } from '../../context/trip-planner-context';
 
 type CalendarViewMode = 'daily' | 'weekly' | 'monthly';
 

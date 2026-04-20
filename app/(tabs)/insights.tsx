@@ -1,14 +1,14 @@
 import ScreenHeader from '@/components/ui/screen-header';
 import { useContext } from 'react';
 import {
-    DimensionValue,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  DimensionValue,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TripPlannerContext } from '../_layout';
+import { TripPlannerContext } from '../../context/trip-planner-context';
 
 function formatIrishDate(dateString: string) {
   const [year, month, day] = dateString.split('-');

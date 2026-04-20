@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trip, TripPlannerContext } from '../context/trip-planner-context';
+import { Trip, TripPlannerContext } from '../../context/trip-planner-context';
 
 function formatIrishDate(dateString: string) {
   const [year, month, day] = dateString.split('-');

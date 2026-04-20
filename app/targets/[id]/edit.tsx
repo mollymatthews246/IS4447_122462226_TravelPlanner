@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Target, TripPlannerContext } from '../../_layout';
+import { Target, TripPlannerContext } from '../../../context/trip-planner-context';
 
 export default function EditTarget() {
   const { id } = useLocalSearchParams<{ id: string }>();

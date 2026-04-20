@@ -18,7 +18,7 @@ import {
   Trip,
   TripPlannerContext,
   User,
-} from './context/trip-planner-context';
+} from '../context/trip-planner-context';
 
 export default function RootLayout() {
   const router = useRouter();

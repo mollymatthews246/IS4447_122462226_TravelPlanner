@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TripPlannerContext } from './_layout';
+import { TripPlannerContext } from '../context/trip-planner-context';
 
 export default function AddTrip() {
   const router = useRouter();

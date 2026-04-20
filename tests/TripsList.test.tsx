@@ -2,7 +2,7 @@
 import { render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import IndexScreen from '../app/(tabs)/index';
-import { TripPlannerContext } from '../app/context/trip-planner-context';
+import { TripPlannerContext } from '../context/trip-planner-context';
 
 jest.mock('../db/client', () => ({
   db: {

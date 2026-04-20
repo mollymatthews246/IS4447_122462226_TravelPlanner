@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Category, TripPlannerContext } from '../../_layout';
+import { Category, TripPlannerContext } from '../../../context/trip-planner-context';
 
 const colorOptions = [
   '#3B82F6',

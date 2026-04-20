@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useContext } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TripPlannerContext } from '../_layout';
+import { TripPlannerContext } from '../../context/trip-planner-context';
 
 function getCategoryEmoji(icon: string) {
   const icons: Record<string, string> = {

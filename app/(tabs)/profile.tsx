@@ -1,4 +1,3 @@
-import { TripPlannerContext } from '@/app/_layout';
 import { db } from '@/db/client';
 import { users as usersTable } from '@/db/schema';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TripPlannerContext } from '../../context/trip-planner-context';
 
 export default function Profile() {
   const router = useRouter();
