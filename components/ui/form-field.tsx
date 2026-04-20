@@ -24,6 +24,7 @@ export default function FormField({
         onChangeText={onChangeText}
         placeholder={placeholder}
         secureTextEntry={secureTextEntry}
+        accessibilityLabel={label}
         style={styles.input}
       />
     </View>

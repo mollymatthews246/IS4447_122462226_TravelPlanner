@@ -1,9 +1,8 @@
-import { TripPlannerContext } from '@/app/_layout';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, usePathname, useRouter } from 'expo-router';
 import { useContext } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-
+import { TripPlannerContext } from '../context/trip-planner-context';
 export default function TabLayout() {
   const router = useRouter();
   const pathname = usePathname();

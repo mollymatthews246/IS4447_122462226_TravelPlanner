@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
 import FormField from '../components/ui/form-field';
