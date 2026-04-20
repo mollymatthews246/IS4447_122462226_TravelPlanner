@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   addActivityText: {
-    color: '#2563EB',
+    color: '#1A8A7D',
     fontSize: 13,
     fontWeight: '800',
     marginTop: 4,
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   activityDot: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#1A8A7D',
     borderRadius: 999,
     height: 10,
     width: 10,

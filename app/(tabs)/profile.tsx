@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 43,
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#1A8A7D',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   logoutButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#1A8A7D',
     paddingVertical: 15,
     borderRadius: 16,
     alignItems: 'center',

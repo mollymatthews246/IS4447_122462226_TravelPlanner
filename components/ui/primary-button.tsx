@@ -43,19 +43,19 @@ export default function PrimaryButton({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: '#0F766E',
+    backgroundColor: '#1A8A7D',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 11,
   },
   secondary: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#94A3B8',
+    backgroundColor: '#F8F9FA',
+    borderColor: '#D1D5DB',
     borderWidth: 1,
   },
   danger: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
+    backgroundColor: '#B91C1C',
+    borderColor: '#991B1B',
     borderWidth: 1,
   },
   compact: {
@@ -73,10 +73,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryLabel: {
-    color: '#0F172A',
+    color: '#2D3436',
   },
   dangerLabel: {
-    color: '#7F1D1D',
+    color: '#FFFFFF',
   },
   compactLabel: {
     fontSize: 13,

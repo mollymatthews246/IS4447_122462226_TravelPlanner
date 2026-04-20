@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -54,7 +55,6 @@ export default function Login() {
       }
 
       await AsyncStorage.setItem('loggedInUserId', String(user.id));
-
       context?.setCurrentUser(user);
 
       const savedUserId = await AsyncStorage.getItem('loggedInUserId');
@@ -73,6 +73,14 @@ export default function Login() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/images/roamly-square.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+
         <View style={styles.card}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Log in to continue planning</Text>
@@ -81,6 +89,7 @@ export default function Login() {
           <TextInput
             style={styles.input}
             placeholder="Enter your email"
+            placeholderTextColor="#636E72"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -92,6 +101,7 @@ export default function Login() {
           <TextInput
             style={styles.input}
             placeholder="Enter your password"
+            placeholderTextColor="#636E72"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -117,54 +127,65 @@ export default function Login() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F6F7FB',
+    backgroundColor: '#F3F7F8',
   },
   container: {
     flex: 1,
     justifyContent: 'center',
     padding: 24,
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
+    borderWidth: 1,
+    borderColor: '#DDE5E7',
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   title: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#111827',
+    color: '#2D3436',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#636E72',
     textAlign: 'center',
     marginBottom: 28,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: '#2D3436',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#BFC8CA',
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 16,
+    color: '#2D3436',
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#1A8A7D',
     paddingVertical: 15,
     borderRadius: 16,
     alignItems: 'center',
@@ -177,9 +198,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   registerText: {
-    color: '#4F46E5',
+    color: '#1A8A7D',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
   },
 });

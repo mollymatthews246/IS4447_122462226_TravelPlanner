@@ -3,12 +3,12 @@ import ScreenHeader from '@/components/ui/screen-header';
 import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trip, TripPlannerContext } from '../_layout';

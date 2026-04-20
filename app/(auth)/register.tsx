@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -54,7 +55,6 @@ export default function Register() {
       const newUser = insertedUser[0];
 
       await AsyncStorage.setItem('loggedInUserId', String(newUser.id));
-
       context?.setCurrentUser(newUser);
 
       const savedUserId = await AsyncStorage.getItem('loggedInUserId');
@@ -83,26 +83,20 @@ export default function Register() {
     }
   };
 
-  const checkUsers = async () => {
-    try {
-      const allUsers = await db.select().from(usersTable);
-      console.log('USERS IN DATABASE:', allUsers);
-      Alert.alert(
-        'Check terminal',
-        'Users have been printed in the VS Code terminal.'
-      );
-    } catch (error) {
-      console.log('CHECK USERS ERROR:', error);
-      Alert.alert('Error', 'Could not read users.');
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/images/roamly-square.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+
         <View style={styles.card}>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Sign up to start planning trips</Text>
@@ -111,6 +105,7 @@ export default function Register() {
           <TextInput
             style={styles.input}
             placeholder="Enter your name"
+            placeholderTextColor="#636E72"
             value={name}
             onChangeText={setName}
             autoCorrect={false}
@@ -120,6 +115,7 @@ export default function Register() {
           <TextInput
             style={styles.input}
             placeholder="Enter your email"
+            placeholderTextColor="#636E72"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -131,6 +127,7 @@ export default function Register() {
           <TextInput
             style={styles.input}
             placeholder="Enter your password"
+            placeholderTextColor="#636E72"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -140,10 +137,6 @@ export default function Register() {
 
           <Pressable style={styles.button} onPress={handleRegister}>
             <Text style={styles.buttonText}>Register</Text>
-          </Pressable>
-
-          <Pressable style={styles.testButton} onPress={checkUsers}>
-            <Text style={styles.testButtonText}>Check Users</Text>
           </Pressable>
 
           <Pressable onPress={() => router.push('/login')}>
@@ -160,12 +153,20 @@ export default function Register() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F6F7FB',
+    backgroundColor: '#F8F9FA',
   },
   container: {
     flex: 1,
     justifyContent: 'center',
     padding: 24,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  logo: {
+    width: 200,
+    height: 200,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -180,34 +181,35 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: '#2D3436',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#636E72',
     textAlign: 'center',
     marginBottom: 28,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: '#2D3436',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#D1D5DB',
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 16,
+    color: '#2D3436',
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#1A8A7D',
     paddingVertical: 15,
     borderRadius: 16,
     alignItems: 'center',
@@ -219,20 +221,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  testButton: {
-    backgroundColor: '#E5E7EB',
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  testButtonText: {
-    color: '#111827',
-    fontSize: 15,
-    fontWeight: '600',
-  },
   loginText: {
-    color: '#4F46E5',
+    color: '#1A8A7D',
     fontSize: 15,
     fontWeight: '600',
     textAlign: 'center',

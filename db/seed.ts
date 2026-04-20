@@ -1,3 +1,4 @@
+// Development data seeding script for Trip Planner app
 import { db } from './client';
 import { activities, categories, targets, trips, users } from './schema';
 

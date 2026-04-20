@@ -1,16 +1,16 @@
 import { db } from '@/db/client';
 import {
-  activities as activitiesTable,
-  categories as categoriesTable,
-  targets as targetsTable,
-  trips as tripsTable,
-  users as usersTable,
+    activities as activitiesTable,
+    categories as categoriesTable,
+    targets as targetsTable,
+    trips as tripsTable,
+    users as usersTable,
 } from '@/db/schema';
-import { seedTripPlannerIfEmpty } from '@/db/seed';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { eq } from 'drizzle-orm';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { createContext, useEffect, useState } from 'react';
+import LoadingScreen from '../components/ui/loading-screen';
 
 export type User = {
   id: number;
@@ -65,16 +65,12 @@ export type Target = {
 type TripPlannerContextType = {
   currentUser: User | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
-
   trips: Trip[];
   setTrips: React.Dispatch<React.SetStateAction<Trip[]>>;
-
   activities: Activity[];
   setActivities: React.Dispatch<React.SetStateAction<Activity[]>>;
-
   categories: Category[];
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
-
   targets: Target[];
   setTargets: React.Dispatch<React.SetStateAction<Target[]>>;
 };
@@ -88,11 +84,15 @@ export default function RootLayout() {
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0.1);
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [targets, setTargets] = useState<Target[]>([]);
+
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   const loadUserFromStorage = async () => {
     const storedUserId = await AsyncStorage.getItem('loggedInUserId');
@@ -120,22 +120,62 @@ export default function RootLayout() {
     return null;
   };
 
+  const loadUserData = async (user: User | null) => {
+    if (!user) {
+      setTrips([]);
+      setActivities([]);
+      setCategories([]);
+      setTargets([]);
+      return;
+    }
+
+    const tripRows = await db
+      .select()
+      .from(tripsTable)
+      .where(eq(tripsTable.userId, user.id));
+
+    const categoryRows = await db
+      .select()
+      .from(categoriesTable)
+      .where(eq(categoriesTable.userId, user.id));
+
+    const targetRows = await db
+      .select()
+      .from(targetsTable)
+      .where(eq(targetsTable.userId, user.id));
+
+    const userTripIds = tripRows.map((trip) => trip.id);
+
+    let activityRows: Activity[] = [];
+
+    if (userTripIds.length > 0) {
+      const allActivities = await db.select().from(activitiesTable);
+      activityRows = allActivities.filter((activity) =>
+        userTripIds.includes(activity.tripId)
+      );
+    }
+
+    setTrips(tripRows);
+    setCategories(categoryRows);
+    setTargets(targetRows);
+    setActivities(activityRows);
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        await seedTripPlannerIfEmpty();
+        setLoadingProgress(0.2);
+        await delay(250);
 
-        await loadUserFromStorage();
+        const loggedInUser = await loadUserFromStorage();
 
-        const tripRows = await db.select().from(tripsTable);
-        const activityRows = await db.select().from(activitiesTable);
-        const categoryRows = await db.select().from(categoriesTable);
-        const targetRows = await db.select().from(targetsTable);
+        setLoadingProgress(0.6);
+        await delay(250);
 
-        setTrips(tripRows);
-        setActivities(activityRows);
-        setCategories(categoryRows);
-        setTargets(targetRows);
+        await loadUserData(loggedInUser);
+
+        setLoadingProgress(1);
+        await delay(700);
       } catch (error) {
         console.log('LOAD DATA ERROR:', error);
       } finally {
@@ -160,8 +200,10 @@ export default function RootLayout() {
 
         if (!storedUser) {
           router.replace('/login');
+          return;
         }
 
+        await loadUserData(storedUser);
         return;
       }
 
@@ -174,7 +216,7 @@ export default function RootLayout() {
   }, [currentUser, hasLoaded, pathname]);
 
   if (!hasLoaded) {
-    return null;
+    return <LoadingScreen progress={loadingProgress} />;
   }
 
   return (
