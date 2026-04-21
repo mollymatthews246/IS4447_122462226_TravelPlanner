@@ -109,9 +109,12 @@ export default function RootLayout() {
         setLoadingProgress(0.2);
         await delay(250);
 
+        setLoadingProgress(0.4);
+        await delay(250);
+
         const loggedInUser = await loadUserFromStorage();
 
-        setLoadingProgress(0.6);
+        setLoadingProgress(0.7);
         await delay(250);
 
         await loadUserData(loggedInUser);

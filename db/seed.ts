@@ -1,4 +1,5 @@
 // Development data seeding script for Trip Planner app
+import { hashPassword } from '../utils/hashPassword';
 import { db } from './client';
 import { activities, categories, targets, trips, users } from './schema';
 
@@ -9,11 +10,13 @@ export async function seedTripPlannerIfEmpty() {
     return;
   }
 
+  const hashedPassword = await hashPassword('password123');
+
   await db.insert(users).values([
     {
       name: 'Molly Demo',
       email: 'molly@example.com',
-      password: 'password123',
+      password: hashedPassword,
       createdAt: '2026-04-13',
     },
   ]);
@@ -98,6 +101,7 @@ export async function seedTripPlannerIfEmpty() {
       icon: 'music',
     },
   ]);
+
   const seededTrips = await db.select().from(trips);
   const seededCategories = await db.select().from(categories);
 
@@ -111,7 +115,9 @@ export async function seedTripPlannerIfEmpty() {
   const outdoorCategory = seededCategories.find(
     (category) => category.name === 'Outdoor'
   );
-  const foodCategory = seededCategories.find((category) => category.name === 'Food');
+  const foodCategory = seededCategories.find(
+    (category) => category.name === 'Food'
+  );
   const relaxationCategory = seededCategories.find(
     (category) => category.name === 'Relaxation'
   );
@@ -216,31 +222,41 @@ export async function seedTripPlannerIfEmpty() {
       userId,
       tripId: parisTrip.id,
       categoryId: sightseeingCategory.id,
-      type: 'weekly',
+      type: 'trip',
       metricType: 'duration',
       targetValue: 5,
       startDate: '2026-05-10',
-      endDate: '2026-05-16',
+      endDate: '2026-05-13',
     },
     {
       userId,
       tripId: italyTrip.id,
       categoryId: foodCategory.id,
-      type: 'weekly',
-      metricType: 'count',
-      targetValue: 2,
+      type: 'trip',
+      metricType: 'duration',
+      targetValue: 4,
       startDate: '2026-06-15',
-      endDate: '2026-06-21',
+      endDate: '2026-06-22',
+    },
+    {
+      userId,
+      tripId: italyTrip.id,
+      categoryId: relaxationCategory.id,
+      type: 'trip',
+      metricType: 'duration',
+      targetValue: 3,
+      startDate: '2026-06-15',
+      endDate: '2026-06-22',
     },
     {
       userId,
       tripId: kerryTrip.id,
       categoryId: outdoorCategory.id,
-      type: 'monthly',
+      type: 'trip',
       metricType: 'duration',
       targetValue: 6,
-      startDate: '2026-07-01',
-      endDate: '2026-07-31',
+      startDate: '2026-07-05',
+      endDate: '2026-07-09',
     },
   ]);
 }

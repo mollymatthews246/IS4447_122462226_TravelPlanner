@@ -1,7 +1,8 @@
 import ScreenHeader from '@/components/ui/screen-header';
-import { useContext } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import {
   DimensionValue,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,18 +11,97 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TripPlannerContext } from '../../context/trip-planner-context';
 
+type InsightsViewMode = 'daily' | 'weekly' | 'monthly';
+
+function toDateOnly(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getStartOfWeek(date: Date) {
+  const start = new Date(date);
+  const day = start.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  start.setDate(start.getDate() + diff);
+  return start;
+}
+
+function getEndOfWeek(date: Date) {
+  const end = getStartOfWeek(date);
+  end.setDate(end.getDate() + 6);
+  return end;
+}
+
+function getStartOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function getEndOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function formatRangeLabel(
+  viewMode: InsightsViewMode,
+  rangeStart: string,
+  rangeEnd: string
+) {
+  if (viewMode === 'daily') {
+    return `Today • ${rangeStart.split('-').reverse().join('/')}`;
+  }
+
+  if (viewMode === 'weekly') {
+    const [sy, sm, sd] = rangeStart.split('-');
+    const [ey, em, ed] = rangeEnd.split('-');
+    return `This Week • ${sd}/${sm}/${sy} - ${ed}/${em}/${ey}`;
+  }
+
+  const date = new Date(rangeStart);
+  return date.toLocaleDateString('en-IE', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 export default function InsightsScreen() {
   const context = useContext(TripPlannerContext);
+  const [viewMode, setViewMode] = useState<InsightsViewMode>('monthly');
 
   if (!context) return null;
 
   const { activities, categories, trips } = context;
+  const today = new Date();
+
+  const rangeStart =
+    viewMode === 'daily'
+      ? toDateOnly(today)
+      : viewMode === 'weekly'
+        ? toDateOnly(getStartOfWeek(today))
+        : toDateOnly(getStartOfMonth(today));
+
+  const rangeEnd =
+    viewMode === 'daily'
+      ? toDateOnly(today)
+      : viewMode === 'weekly'
+        ? toDateOnly(getEndOfWeek(today))
+        : toDateOnly(getEndOfMonth(today));
 
   const completedActivitiesList = activities.filter(
     (activity) => activity.status === 'completed'
   );
   const plannedActivitiesList = activities.filter(
     (activity) => activity.status === 'planned'
+  );
+
+  const filteredCompletedActivities = completedActivitiesList.filter(
+    (activity) =>
+      activity.activityDate >= rangeStart && activity.activityDate <= rangeEnd
+  );
+
+  const filteredPlannedActivities = plannedActivitiesList.filter(
+    (activity) =>
+      activity.activityDate >= rangeStart && activity.activityDate <= rangeEnd
   );
 
   const totalActivities = activities.length;
@@ -40,34 +120,36 @@ export default function InsightsScreen() {
 
   const totalHours = completedHours + plannedHours;
 
-  const categoryTotals = categories.map((category) => {
-    const completedCategoryActivities = completedActivitiesList.filter(
-      (activity) => activity.categoryId === category.id
-    );
+  const categoryTotals = useMemo(() => {
+    return categories.map((category) => {
+      const completedCategoryActivities = filteredCompletedActivities.filter(
+        (activity) => activity.categoryId === category.id
+      );
 
-    const plannedCategoryActivities = plannedActivitiesList.filter(
-      (activity) => activity.categoryId === category.id
-    );
+      const plannedCategoryActivities = filteredPlannedActivities.filter(
+        (activity) => activity.categoryId === category.id
+      );
 
-    const completed = completedCategoryActivities.reduce(
-      (total, activity) => total + activity.duration,
-      0
-    );
+      const completed = completedCategoryActivities.reduce(
+        (total, activity) => total + activity.duration,
+        0
+      );
 
-    const planned = plannedCategoryActivities.reduce(
-      (total, activity) => total + activity.duration,
-      0
-    );
+      const planned = plannedCategoryActivities.reduce(
+        (total, activity) => total + activity.duration,
+        0
+      );
 
-    return {
-      id: category.id,
-      name: category.name,
-      color: category.color,
-      completed,
-      planned,
-      total: completed + planned,
-    };
-  });
+      return {
+        id: category.id,
+        name: category.name,
+        color: category.color,
+        completed,
+        planned,
+        total: completed + planned,
+      };
+    });
+  }, [categories, filteredCompletedActivities, filteredPlannedActivities]);
 
   const maxCategoryHours = Math.max(
     ...categoryTotals.map((category) => category.completed),
@@ -105,10 +187,7 @@ export default function InsightsScreen() {
     };
   });
 
-  const maxTripHours = Math.max(
-    ...tripTotals.map((trip) => trip.completed),
-    1
-  );
+  const maxTripHours = Math.max(...tripTotals.map((trip) => trip.completed), 1);
 
   const completionPercentage =
     totalHours === 0 ? 0 : Math.round((completedHours / totalHours) * 100);
@@ -177,11 +256,43 @@ export default function InsightsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Completed Hours by Category</Text>
+          <Text style={styles.sectionTitle}>Hours by Category</Text>
+
+          <View style={styles.segmentedControl}>
+            {(['daily', 'weekly', 'monthly'] as InsightsViewMode[]).map((mode) => {
+              const isSelected = viewMode === mode;
+
+              return (
+                <Pressable
+                  key={mode}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show ${mode} category insights`}
+                  onPress={() => setViewMode(mode)}
+                  style={[
+                    styles.segmentButton,
+                    isSelected && styles.segmentButtonSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      isSelected && styles.segmentTextSelected,
+                    ]}
+                  >
+                    {mode}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={styles.rangeText}>
+            {formatRangeLabel(viewMode, rangeStart, rangeEnd)}
+          </Text>
 
           {categoryTotals.every((category) => category.completed === 0) ? (
             <Text style={styles.emptyText}>
-              No completed category data available yet.
+              No completed category data available for this period.
             </Text>
           ) : (
             categoryTotals
@@ -362,6 +473,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginTop: 12,
+  },
+  segmentedControl: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 12,
+    flexDirection: 'row',
+    padding: 3,
+  },
+  segmentButton: {
+    alignItems: 'center',
+    borderRadius: 10,
+    flex: 1,
+    paddingVertical: 8,
+  },
+  segmentButtonSelected: {
+    backgroundColor: '#FFFFFF',
+  },
+  segmentText: {
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  segmentTextSelected: {
+    color: '#0F172A',
+  },
+  rangeText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 10,
+    marginBottom: 12,
   },
   chartRow: {
     marginBottom: 14,
