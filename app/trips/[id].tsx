@@ -1,3 +1,4 @@
+import WeatherCard from '@/components/WeatherCard';
 import { db } from '@/db/client';
 import { activities as activitiesTable, trips as tripsTable } from '@/db/schema';
 import { useTheme } from '@/hooks/useTheme';
@@ -83,19 +84,15 @@ export default function TripDetail() {
   };
 
   const confirmMarkComplete = (activityId: number, title: string) => {
-    Alert.alert(
-      'Mark activity complete',
-      `Mark "${title}" as completed?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Complete',
-          onPress: () => {
-            void markActivityComplete(activityId);
-          },
+    Alert.alert('Mark activity complete', `Mark "${title}" as completed?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Complete',
+        onPress: () => {
+          void markActivityComplete(activityId);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
@@ -111,6 +108,7 @@ export default function TripDetail() {
           >
             <Text style={styles.topBarIcon}>‹</Text>
           </Pressable>
+
           <View style={styles.topBarRight}>
             <Pressable
               onPress={() => router.push(`/trips/${id}/edit`)}
@@ -118,6 +116,7 @@ export default function TripDetail() {
             >
               <Text style={styles.topBarIcon}>✎</Text>
             </Pressable>
+
             <Pressable
               onPress={deleteTrip}
               style={[styles.topBarButton, { backgroundColor: theme.card }]}
@@ -139,14 +138,20 @@ export default function TripDetail() {
         <View style={styles.dateRow}>
           <Text style={styles.dateIcon}>📅</Text>
           <View>
-            <Text style={[styles.dateLabel, { color: theme.secondaryText }]}>DATES</Text>
+            <Text style={[styles.dateLabel, { color: theme.secondaryText }]}>
+              DATES
+            </Text>
             <Text style={[styles.dateValue, { color: theme.text }]}>
               {formatShortDate(trip.startDate)} – {formatShortDate(trip.endDate)}
             </Text>
           </View>
+
           <View style={[styles.dateDivider, { backgroundColor: theme.border }]} />
+
           <View>
-            <Text style={[styles.dateLabel, { color: theme.secondaryText }]}>DURATION</Text>
+            <Text style={[styles.dateLabel, { color: theme.secondaryText }]}>
+              DURATION
+            </Text>
             <Text style={[styles.dateValue, { color: theme.text }]}>
               {getDayCount(trip.startDate, trip.endDate)} days
             </Text>
@@ -154,33 +159,83 @@ export default function TripDetail() {
         </View>
 
         {trip.notes ? (
-          <View style={[styles.notesCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
+          <View
+            style={[
+              styles.notesCard,
+              { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 },
+            ]}
+          >
             <Text style={styles.notesQuote}>"</Text>
-            <Text style={[styles.notesText, { color: theme.secondaryText }]}>{trip.notes}</Text>
+            <Text style={[styles.notesText, { color: theme.secondaryText }]}>
+              {trip.notes}
+            </Text>
           </View>
         ) : null}
 
+        <WeatherCard destination={trip.destination} />
+
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
-            <Text style={[styles.statNumber, { color: theme.text }]}>{tripActivities.length}</Text>
-            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>ACTIVITIES</Text>
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {tripActivities.length}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>
+              ACTIVITIES
+            </Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
-            <Text style={[styles.statNumber, { color: theme.text }]}>{completedCount}</Text>
-            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>COMPLETED</Text>
+
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {completedCount}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>
+              COMPLETED
+            </Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
-            <Text style={[styles.statNumber, { color: theme.text }]}>{completedHours}h</Text>
-            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>DONE</Text>
+
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {completedHours}h
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>
+              DONE
+            </Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
-            <Text style={[styles.statNumber, { color: theme.text }]}>{plannedHours}h</Text>
-            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>PLANNED</Text>
+
+          <View
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {plannedHours}h
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>
+              PLANNED
+            </Text>
           </View>
         </View>
 
         <View style={styles.activitiesHeader}>
-          <Text style={[styles.activitiesTitle, { color: theme.text }]}>Activities</Text>
+          <Text style={[styles.activitiesTitle, { color: theme.text }]}>
+            Activities
+          </Text>
           <Pressable
             style={styles.addButton}
             onPress={() => router.push(`/activities/add?tripId=${trip.id}`)}
@@ -190,7 +245,12 @@ export default function TripDetail() {
         </View>
 
         {tripActivities.length === 0 ? (
-          <View style={[styles.emptyCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
+          <View
+            style={[
+              styles.emptyCard,
+              { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 },
+            ]}
+          >
             <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
               No activities added yet. Add your first activity for this trip.
             </Text>
@@ -217,7 +277,10 @@ export default function TripDetail() {
                 onPress={() => router.push(`/activities/${activity.id}/edit`)}
               >
                 <View style={styles.activityTop}>
-                  <Text style={[styles.activityTitle, { color: theme.text }]}>{activity.title}</Text>
+                  <Text style={[styles.activityTitle, { color: theme.text }]}>
+                    {activity.title}
+                  </Text>
+
                   <View
                     style={[
                       styles.statusBadge,
@@ -251,7 +314,9 @@ export default function TripDetail() {
                   <Text style={[styles.metaText, { color: theme.secondaryText }]}>
                     📅 {formatActivityDate(activity.activityDate)}
                   </Text>
-                  <Text style={[styles.metaText, { color: theme.secondaryText }]}>⏱ {activity.duration}h</Text>
+                  <Text style={[styles.metaText, { color: theme.secondaryText }]}>
+                    ⏱ {activity.duration}h
+                  </Text>
                   {category ? (
                     <Text style={[styles.metaText, { color: theme.secondaryText }]}>
                       {category.icon} {category.name}
@@ -260,8 +325,18 @@ export default function TripDetail() {
                 </View>
 
                 {activity.notes ? (
-                  <View style={[styles.activityNotesBar, { backgroundColor: theme.background }]}>
-                    <Text style={[styles.activityNotesText, { color: theme.secondaryText }]}>
+                  <View
+                    style={[
+                      styles.activityNotesBar,
+                      { backgroundColor: theme.background },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.activityNotesText,
+                        { color: theme.secondaryText },
+                      ]}
+                    >
                       {activity.notes}
                     </Text>
                   </View>
