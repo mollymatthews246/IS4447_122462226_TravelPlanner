@@ -1,5 +1,9 @@
 import { db } from '@/db/client';
-import { users as usersTable } from '@/db/schema';
+import {
+  activities as activitiesTable,
+  trips as tripsTable,
+  users as usersTable,
+} from '@/db/schema';
 import { hashPassword } from '@/utils/hashPassword';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { eq } from 'drizzle-orm';
@@ -34,6 +38,11 @@ export default function Login() {
       return;
     }
 
+    if (!context) {
+      Alert.alert('Error', 'App context not available.');
+      return;
+    }
+
     try {
       const hashedPassword = await hashPassword(password);
 
@@ -55,10 +64,23 @@ export default function Login() {
       }
 
       await AsyncStorage.setItem('loggedInUserId', String(user.id));
-      context?.setCurrentUser(user);
+      context.setCurrentUser(user);
 
-      const savedUserId = await AsyncStorage.getItem('loggedInUserId');
-      console.log('SAVED USER ID:', savedUserId);
+      const userTrips = await db
+        .select()
+        .from(tripsTable)
+        .where(eq(tripsTable.userId, user.id));
+
+      context.setTrips(userTrips);
+
+      const allActivities = await db.select().from(activitiesTable);
+      const userTripIds = userTrips.map((trip) => trip.id);
+
+      const userActivities = allActivities.filter((activity) =>
+        userTripIds.includes(activity.tripId)
+      );
+
+      context.setActivities(userActivities);
 
       router.replace('/');
     } catch (error) {

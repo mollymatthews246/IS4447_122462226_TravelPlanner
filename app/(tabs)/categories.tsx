@@ -7,24 +7,24 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TripPlannerContext } from '../../context/trip-planner-context';
 
-function getCategoryEmoji(icon: string) {
-  const icons: Record<string, string> = {
-    camera: '📷',
-    tree: '🌳',
-    utensils: '🍽️',
-    coffee: '☕',
-    'shopping-bag': '🛍️',
-    bus: '🚌',
-    landmark: '🏛️',
-    music: '🎵',
-    horse: '🐴',
-  };
+const CATEGORY_ICONS: Record<string, string> = {
+  camera: '📷',
+  tree: '🌳',
+  utensils: '🍽️',
+  coffee: '☕',
+  'shopping-bag': '🛍️',
+  bus: '🚌',
+  landmark: '🏛️',
+  music: '🎵',
+  horse: '🐴',
+};
 
-  return icons[icon] ?? '📍';
+function getCategoryEmoji(icon: string) {
+  return CATEGORY_ICONS[icon] ?? '📍';
 }
 
 function displayCategoryIcon(icon: string) {
-  return icon.length <= 4 ? icon : getCategoryEmoji(icon);
+  return CATEGORY_ICONS[icon] ?? icon;
 }
 
 export default function CategoriesScreen() {
@@ -53,7 +53,9 @@ export default function CategoriesScreen() {
         showsVerticalScrollIndicator={false}
       >
         {categories.length === 0 ? (
-          <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No categories yet.</Text>
+          <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
+            No categories yet.
+          </Text>
         ) : (
           categories.map((category) => (
             <Pressable
@@ -71,8 +73,12 @@ export default function CategoriesScreen() {
               />
 
               <View style={styles.cardText}>
-                <Text style={[styles.cardTitle, { color: theme.text }]}>{category.name}</Text>
-                <Text style={[styles.cardSubtitle, { color: theme.secondaryText }]}>Tap to edit</Text>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>
+                  {category.name}
+                </Text>
+                <Text style={[styles.cardSubtitle, { color: theme.secondaryText }]}>
+                  Tap to edit
+                </Text>
               </View>
 
               <Text style={styles.iconText}>

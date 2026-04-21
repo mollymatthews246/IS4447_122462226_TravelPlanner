@@ -45,7 +45,15 @@ export default function TripDetail() {
 
   if (!context) return null;
 
-  const { trips, setTrips, activities, setActivities, categories } = context;
+  const {
+    trips,
+    setTrips,
+    activities,
+    setActivities,
+    categories,
+    currentUser,
+  } = context;
+
   const trip = trips.find((t: Trip) => t.id === Number(id));
 
   if (!trip) return null;
@@ -67,9 +75,26 @@ export default function TripDetail() {
     .reduce((sum, a) => sum + (a.duration ?? 0), 0);
 
   const deleteTrip = async () => {
+    if (!currentUser) return;
+
     await db.delete(tripsTable).where(eq(tripsTable.id, Number(id)));
-    const rows = await db.select().from(tripsTable);
-    setTrips(rows);
+
+    const userTrips = await db
+      .select()
+      .from(tripsTable)
+      .where(eq(tripsTable.userId, currentUser.id));
+
+    setTrips(userTrips);
+
+    const remainingTripIds = userTrips.map((trip) => trip.id);
+
+    const allActivities = await db.select().from(activitiesTable);
+    const filteredActivities = allActivities.filter((activity) =>
+      remainingTripIds.includes(activity.tripId)
+    );
+
+    setActivities(filteredActivities);
+
     router.back();
   };
 
@@ -79,8 +104,14 @@ export default function TripDetail() {
       .set({ status: 'completed' })
       .where(eq(activitiesTable.id, activityId));
 
-    const rows = await db.select().from(activitiesTable);
-    setActivities(rows);
+    const currentTripIds = trips.map((trip) => trip.id);
+
+    const allActivities = await db.select().from(activitiesTable);
+    const filteredActivities = allActivities.filter((activity) =>
+      currentTripIds.includes(activity.tripId)
+    );
+
+    setActivities(filteredActivities);
   };
 
   const confirmMarkComplete = (activityId: number, title: string) => {
