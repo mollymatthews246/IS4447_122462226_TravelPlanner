@@ -6,6 +6,7 @@ import {
   activities as activitiesTable,
   trips as tripsTable,
 } from '@/db/schema';
+import { useTheme } from '@/hooks/useTheme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { eq } from 'drizzle-orm';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -41,6 +42,7 @@ export default function EditActivity() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const context = useContext(TripPlannerContext);
+  const { theme } = useTheme();
 
   const activity = context?.activities.find(
     (item: Activity) => item.id === Number(id)
@@ -140,7 +142,7 @@ export default function EditActivity() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -150,8 +152,8 @@ export default function EditActivity() {
           subtitle={`Update ${activity.title}`}
         />
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Choose Trip</Text>
+        <View style={[styles.card, { backgroundColor: theme.card }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Choose Trip</Text>
           <View style={styles.optionRow}>
             {trips.map((trip) => {
               const isSelected = selectedTripId === trip.id;
@@ -164,13 +166,18 @@ export default function EditActivity() {
                   onPress={() => setSelectedTripId(trip.id)}
                   style={[
                     styles.optionButton,
-                    isSelected && styles.optionButtonSelected,
+                    {
+                      backgroundColor: isSelected ? theme.text : theme.card,
+                      borderColor: isSelected ? theme.text : theme.border,
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.optionText,
-                      isSelected && styles.optionTextSelected,
+                      {
+                        color: isSelected ? theme.background : theme.text,
+                      },
                     ]}
                   >
                     {trip.title}
@@ -181,7 +188,7 @@ export default function EditActivity() {
           </View>
 
           {selectedTrip ? (
-            <Text style={styles.helperText}>
+            <Text style={[styles.helperText, { color: theme.secondaryText }]}>
               Destination: {selectedTrip.destination}
             </Text>
           ) : null}
@@ -193,7 +200,7 @@ export default function EditActivity() {
             placeholder="e.g. Eiffel Tower visit"
           />
 
-          <Text style={styles.sectionTitle}>Choose Category</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Choose Category</Text>
           <View style={styles.optionRow}>
             {categories.map((category) => {
               const isSelected = selectedCategoryId === category.id;
@@ -206,13 +213,18 @@ export default function EditActivity() {
                   onPress={() => setSelectedCategoryId(category.id)}
                   style={[
                     styles.optionButton,
-                    isSelected && styles.optionButtonSelected,
+                    {
+                      backgroundColor: isSelected ? theme.text : theme.card,
+                      borderColor: isSelected ? theme.text : theme.border,
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.optionText,
-                      isSelected && styles.optionTextSelected,
+                      {
+                        color: isSelected ? theme.background : theme.text,
+                      },
                     ]}
                   >
                     {category.name}
@@ -222,45 +234,60 @@ export default function EditActivity() {
             })}
           </View>
 
-          <Text style={styles.sectionTitle}>Hours</Text>
-          <View style={styles.valueBox}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Hours</Text>
+          <View
+            style={[
+              styles.valueBox,
+              {
+                backgroundColor: theme.background,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <Pressable
-              style={styles.stepButton}
+              style={[styles.stepButton, { backgroundColor: theme.card }]}
               onPress={() =>
                 setDuration(String(Math.max(1, (Number(duration) || 1) - 1)))
               }
             >
-              <Text style={styles.stepButtonText}>−</Text>
+              <Text style={[styles.stepButtonText, { color: theme.text }]}>−</Text>
             </Pressable>
 
-            <Text style={styles.valueText}>{duration || '1'} hrs</Text>
+            <Text style={[styles.valueText, { color: theme.text }]}>{duration || '1'} hrs</Text>
 
             <Pressable
-              style={styles.stepButton}
+              style={[styles.stepButton, { backgroundColor: theme.card }]}
               onPress={() => setDuration(String((Number(duration) || 0) + 1))}
             >
-              <Text style={styles.stepButtonText}>+</Text>
+              <Text style={[styles.stepButtonText, { color: theme.text }]}>+</Text>
             </Pressable>
           </View>
 
-          <Text style={styles.sectionTitle}>Date</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Date</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Select activity date"
             onPress={() => setShowDatePicker(true)}
-            style={styles.dateButton}
+            style={[
+              styles.dateButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
           >
             <Text
               style={[
                 styles.dateButtonText,
-                !activityDate && styles.datePlaceholder,
+                { color: theme.text },
+                !activityDate && { color: theme.secondaryText },
               ]}
             >
               {formatIrishDate(activityDate)}
             </Text>
           </Pressable>
 
-          <Text style={styles.sectionTitle}>Status</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Status</Text>
           <View style={styles.optionRow}>
             {(['planned', 'completed'] as const).map((option) => {
               const isSelected = status === option;
@@ -273,13 +300,18 @@ export default function EditActivity() {
                   onPress={() => setStatus(option)}
                   style={[
                     styles.optionButton,
-                    isSelected && styles.optionButtonSelected,
+                    {
+                      backgroundColor: isSelected ? theme.text : theme.card,
+                      borderColor: isSelected ? theme.text : theme.border,
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.optionText,
-                      isSelected && styles.optionTextSelected,
+                      {
+                        color: isSelected ? theme.background : theme.text,
+                      },
                     ]}
                   >
                     {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -339,7 +371,6 @@ export default function EditActivity() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
   },
   content: {
@@ -347,19 +378,16 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 18,
   },
   sectionTitle: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 10,
     marginTop: 4,
   },
   helperText: {
-    color: '#64748B',
     fontSize: 13,
     marginBottom: 14,
   },
@@ -370,29 +398,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   optionButton: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  optionButtonSelected: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
-  },
   optionText: {
-    color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',
   },
-  optionTextSelected: {
-    color: '#FFFFFF',
-  },
   valueBox: {
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderColor: '#CBD5E1',
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
@@ -402,26 +418,21 @@ const styles = StyleSheet.create({
   },
   stepButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     height: 40,
     justifyContent: 'center',
     width: 40,
   },
   stepButtonText: {
-    color: '#0F172A',
     fontSize: 24,
     fontWeight: '700',
     lineHeight: 24,
   },
   valueText: {
-    color: '#0F172A',
     fontSize: 20,
     fontWeight: '800',
   },
   dateButton: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 16,
@@ -429,11 +440,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   dateButtonText: {
-    color: '#0F172A',
     fontSize: 15,
-  },
-  datePlaceholder: {
-    color: '#94A3B8',
   },
   errorText: {
     color: '#DC2626',

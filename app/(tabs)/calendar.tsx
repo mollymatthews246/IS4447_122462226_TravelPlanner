@@ -1,6 +1,7 @@
 import ScreenHeader from '@/components/ui/screen-header';
 import { db } from '@/db/client';
 import { activities as activitiesTable } from '@/db/schema';
+import { useTheme } from '@/hooks/useTheme';
 import { eq } from 'drizzle-orm';
 import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
@@ -117,6 +118,7 @@ function getRangeLabel(
 export default function CalendarScreen() {
   const router = useRouter();
   const context = useContext(TripPlannerContext);
+  const { theme, isDark } = useTheme();
   const [viewMode, setViewMode] = useState<CalendarViewMode>('monthly');
 
   if (!context) return null;
@@ -165,10 +167,17 @@ export default function CalendarScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+    >
       <ScreenHeader title="Calendar" subtitle="Your trip days at a glance" />
 
-      <View style={styles.segmentedControl}>
+      <View
+        style={[
+          styles.segmentedControl,
+          { backgroundColor: theme.muted, borderColor: theme.border },
+        ]}
+      >
         {(['daily', 'weekly', 'monthly'] as CalendarViewMode[]).map((mode) => {
           const isSelected = viewMode === mode;
 
@@ -180,13 +189,19 @@ export default function CalendarScreen() {
               onPress={() => setViewMode(mode)}
               style={[
                 styles.segmentButton,
-                isSelected && styles.segmentButtonSelected,
+                isSelected && [
+                  styles.segmentButtonSelected,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ],
               ]}
             >
               <Text
                 style={[
                   styles.segmentText,
-                  isSelected && styles.segmentTextSelected,
+                  { color: isSelected ? theme.text : theme.secondaryText },
                 ]}
               >
                 {mode}
@@ -196,7 +211,7 @@ export default function CalendarScreen() {
         })}
       </View>
 
-      <Text style={styles.rangeText}>
+      <Text style={[styles.rangeText, { color: theme.secondaryText }]}>
         {getRangeLabel(viewMode, rangeStart, rangeEnd)}
       </Text>
 
@@ -205,10 +220,20 @@ export default function CalendarScreen() {
         showsVerticalScrollIndicator={false}
       >
         {filteredTrips.length === 0 ? (
-          <View style={styles.emptyCard}>
+          <View
+            style={[
+              styles.emptyCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <Text style={styles.emptyIcon}>🗓️</Text>
-            <Text style={styles.emptyTitle}>{getEmptyMessage(viewMode)}</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              {getEmptyMessage(viewMode)}
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: theme.secondaryText }]}>
               Add a trip or change the calendar view.
             </Text>
           </View>
@@ -219,11 +244,25 @@ export default function CalendarScreen() {
             );
 
             return (
-              <View key={trip.id} style={styles.tripCard}>
+              <View
+                key={trip.id}
+                style={[
+                  styles.tripCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                    shadowOpacity: isDark ? 0 : 0.06,
+                  },
+                ]}
+              >
                 <View style={styles.tripHeader}>
                   <View>
-                    <Text style={styles.tripTitle}>{trip.title}</Text>
-                    <Text style={styles.tripSubtitle}>
+                    <Text style={[styles.tripTitle, { color: theme.text }]}>
+                      {trip.title}
+                    </Text>
+                    <Text
+                      style={[styles.tripSubtitle, { color: theme.secondaryText }]}
+                    >
                       {trip.destination} • {formatIrishDate(trip.startDate)} -{' '}
                       {formatIrishDate(trip.endDate)}
                     </Text>
@@ -249,13 +288,22 @@ export default function CalendarScreen() {
                         key={date}
                         style={[
                           styles.dateTile,
-                          hasActivities && styles.dateTileActive,
+                          {
+                            backgroundColor: hasActivities
+                              ? theme.text
+                              : theme.inputBackground,
+                            borderColor: theme.border,
+                          },
                         ]}
                       >
                         <Text
                           style={[
                             styles.dateTileDay,
-                            hasActivities && styles.dateTileTextActive,
+                            {
+                              color: hasActivities
+                                ? '#FFFFFF'
+                                : theme.secondaryText,
+                            },
                           ]}
                         >
                           {getDayName(date)}
@@ -263,7 +311,9 @@ export default function CalendarScreen() {
                         <Text
                           style={[
                             styles.dateTileNumber,
-                            hasActivities && styles.dateTileTextActive,
+                            {
+                              color: hasActivities ? '#FFFFFF' : theme.text,
+                            },
                           ]}
                         >
                           {formatIrishDate(date).slice(0, 2)}
@@ -271,7 +321,11 @@ export default function CalendarScreen() {
                         <Text
                           style={[
                             styles.dateTileMonth,
-                            hasActivities && styles.dateTileTextActive,
+                            {
+                              color: hasActivities
+                                ? '#FFFFFF'
+                                : theme.secondaryText,
+                            },
                           ]}
                         >
                           {getMonthName(date)}
@@ -281,7 +335,12 @@ export default function CalendarScreen() {
                   })}
                 </ScrollView>
 
-                <View style={styles.agendaList}>
+                <View
+                  style={[
+                    styles.agendaList,
+                    { borderTopColor: theme.border },
+                  ]}
+                >
                   {tripDates.map((date) => {
                     const dayActivities = activities
                       .filter(
@@ -297,8 +356,20 @@ export default function CalendarScreen() {
                     return (
                       <View key={date} style={styles.agendaRow}>
                         <View style={styles.agendaDate}>
-                          <Text style={styles.agendaDay}>{getDayName(date)}</Text>
-                          <Text style={styles.agendaNumber}>
+                          <Text
+                            style={[
+                              styles.agendaDay,
+                              { color: theme.secondaryText },
+                            ]}
+                          >
+                            {getDayName(date)}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.agendaNumber,
+                              { color: theme.text },
+                            ]}
+                          >
                             {formatIrishDate(date).slice(0, 2)}
                           </Text>
                         </View>
@@ -315,12 +386,28 @@ export default function CalendarScreen() {
                                   `/activities/add?tripId=${trip.id}&activityDate=${date}`
                                 )
                               }
-                              style={styles.emptyAgendaPill}
+                              style={[
+                                styles.emptyAgendaPill,
+                                {
+                                  backgroundColor: theme.inputBackground,
+                                  borderColor: theme.border,
+                                },
+                              ]}
                             >
-                              <Text style={styles.emptyAgendaText}>
+                              <Text
+                                style={[
+                                  styles.emptyAgendaText,
+                                  { color: theme.secondaryText },
+                                ]}
+                              >
                                 No activities planned
                               </Text>
-                              <Text style={styles.addActivityText}>
+                              <Text
+                                style={[
+                                  styles.addActivityText,
+                                  { color: theme.primary },
+                                ]}
+                              >
                                 + Add Activity
                               </Text>
                             </Pressable>
@@ -333,9 +420,15 @@ export default function CalendarScreen() {
                                   key={activity.id}
                                   style={[
                                     styles.activityPill,
-                                    isCompleted
-                                      ? styles.activityPillCompleted
-                                      : styles.activityPillPlanned,
+                                    {
+                                      backgroundColor: isCompleted
+                                        ? isDark
+                                          ? '#183127'
+                                          : '#ECFDF5'
+                                        : isDark
+                                          ? '#352618'
+                                          : '#FFF7ED',
+                                    },
                                   ]}
                                   onPress={() =>
                                     router.push(`/activities/${activity.id}/edit`)
@@ -352,10 +445,20 @@ export default function CalendarScreen() {
                                     ]}
                                   />
                                   <View style={styles.activityTextBlock}>
-                                    <Text style={styles.activityTitle}>
+                                    <Text
+                                      style={[
+                                        styles.activityTitle,
+                                        { color: theme.text },
+                                      ]}
+                                    >
                                       {activity.title}
                                     </Text>
-                                    <Text style={styles.activityMeta}>
+                                    <Text
+                                      style={[
+                                        styles.activityMeta,
+                                        { color: theme.secondaryText },
+                                      ]}
+                                    >
                                       {activity.duration} hrs • {activity.status}
                                     </Text>
                                   </View>
@@ -368,14 +471,26 @@ export default function CalendarScreen() {
                                         event.stopPropagation();
                                         void markActivityComplete(activity.id);
                                       }}
-                                      style={styles.completeButton}
+                                      style={[
+                                        styles.completeButton,
+                                        { backgroundColor: theme.primary },
+                                      ]}
                                     >
                                       <Text style={styles.completeButtonText}>
                                         Complete
                                       </Text>
                                     </Pressable>
                                   ) : (
-                                    <View style={styles.completedBadge}>
+                                    <View
+                                      style={[
+                                        styles.completedBadge,
+                                        {
+                                          backgroundColor: isDark
+                                            ? '#214530'
+                                            : '#DCFCE7',
+                                        },
+                                      ]}
+                                    >
                                       <Text style={styles.completedBadgeText}>
                                         Done
                                       </Text>
@@ -401,14 +516,13 @@ export default function CalendarScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F2F2F7',
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 10,
   },
   segmentedControl: {
-    backgroundColor: '#E5E7EB',
     borderRadius: 12,
+    borderWidth: 1,
     flexDirection: 'row',
     marginTop: 12,
     padding: 3,
@@ -420,19 +534,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   segmentButtonSelected: {
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
   },
   segmentText: {
-    color: '#475569',
     fontSize: 14,
     fontWeight: '700',
     textTransform: 'capitalize',
   },
-  segmentTextSelected: {
-    color: '#0F172A',
-  },
   rangeText: {
-    color: '#64748B',
     fontSize: 13,
     fontWeight: '600',
     marginTop: 10,
@@ -443,42 +552,42 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 24,
+    borderWidth: 1,
   },
   emptyIcon: {
     fontSize: 32,
     marginBottom: 8,
   },
   emptyTitle: {
-    color: '#0F172A',
     fontSize: 17,
     fontWeight: '800',
     textAlign: 'center',
   },
   emptySubtitle: {
-    color: '#64748B',
     fontSize: 14,
     marginTop: 6,
     textAlign: 'center',
   },
   tripCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     marginBottom: 16,
     padding: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   tripHeader: {
     marginBottom: 14,
   },
   tripTitle: {
-    color: '#0F172A',
     fontSize: 20,
     fontWeight: '800',
   },
   tripSubtitle: {
-    color: '#64748B',
     fontSize: 13,
     marginTop: 5,
   },
@@ -488,38 +597,28 @@ const styles = StyleSheet.create({
   },
   dateTile: {
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
     borderRadius: 16,
     minWidth: 62,
     paddingHorizontal: 12,
     paddingVertical: 10,
-  },
-  dateTileActive: {
-    backgroundColor: '#0F172A',
+    borderWidth: 1,
   },
   dateTileDay: {
-    color: '#64748B',
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   dateTileNumber: {
-    color: '#0F172A',
     fontSize: 22,
     fontWeight: '900',
     marginTop: 2,
   },
   dateTileMonth: {
-    color: '#64748B',
     fontSize: 11,
     fontWeight: '700',
     marginTop: 1,
   },
-  dateTileTextActive: {
-    color: '#FFFFFF',
-  },
   agendaList: {
-    borderTopColor: '#E5E7EB',
     borderTopWidth: 1,
     paddingTop: 12,
   },
@@ -533,13 +632,11 @@ const styles = StyleSheet.create({
     width: 44,
   },
   agendaDay: {
-    color: '#94A3B8',
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   agendaNumber: {
-    color: '#0F172A',
     fontSize: 20,
     fontWeight: '900',
     marginTop: 2,
@@ -548,19 +645,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyAgendaPill: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#CBD5E1',
     borderRadius: 14,
     borderStyle: 'dashed',
     borderWidth: 1,
     padding: 12,
   },
   emptyAgendaText: {
-    color: '#94A3B8',
     fontSize: 14,
   },
   addActivityText: {
-    color: '#1A8A7D',
     fontSize: 13,
     fontWeight: '800',
     marginTop: 4,
@@ -573,12 +666,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 12,
   },
-  activityPillPlanned: {
-    backgroundColor: '#FFF7ED',
-  },
-  activityPillCompleted: {
-    backgroundColor: '#ECFDF5',
-  },
   activityDot: {
     borderRadius: 999,
     height: 10,
@@ -588,18 +675,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activityTitle: {
-    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
   },
   activityMeta: {
-    color: '#64748B',
     fontSize: 12,
     marginTop: 3,
     textTransform: 'capitalize',
   },
   completeButton: {
-    backgroundColor: '#1A8A7D',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -610,7 +694,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   completedBadge: {
-    backgroundColor: '#DCFCE7',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 7,

@@ -1,4 +1,5 @@
 import ScreenHeader from '@/components/ui/screen-header';
+import { useTheme } from '@/hooks/useTheme';
 import { useContext, useMemo, useState } from 'react';
 import {
   DimensionValue,
@@ -57,7 +58,9 @@ function formatRangeLabel(
     return `This Week • ${sd}/${sm}/${sy} - ${ed}/${em}/${ey}`;
   }
 
-  const date = new Date(rangeStart);
+  const [year, month] = rangeStart.split('-').map(Number);
+  const date = new Date(year, month - 1, 1);
+
   return date.toLocaleDateString('en-IE', {
     month: 'long',
     year: 'numeric',
@@ -66,6 +69,7 @@ function formatRangeLabel(
 
 export default function InsightsScreen() {
   const context = useContext(TripPlannerContext);
+  const { theme, isDark } = useTheme();
   const [viewMode, setViewMode] = useState<InsightsViewMode>('monthly');
 
   if (!context) return null;
@@ -193,7 +197,9 @@ export default function InsightsScreen() {
     totalHours === 0 ? 0 : Math.round((completedHours / totalHours) * 100);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+    >
       <ScreenHeader
         title="Insights"
         subtitle="See how your plans and completed activities compare"
@@ -204,94 +210,224 @@ export default function InsightsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{totalActivities}</Text>
-            <Text style={styles.statLabel}>Activities</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statValue, { color: theme.text }]}>
+              {totalActivities}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>
+              Activities
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{totalHours}</Text>
-            <Text style={styles.statLabel}>Total Hours</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statValue, { color: theme.text }]}>
+              {totalHours}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>
+              Total Hours
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{completedHours}</Text>
-            <Text style={styles.statLabel}>Completed Hours</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statValue, { color: theme.text }]}>
+              {completedHours}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>
+              Completed Hours
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{plannedHours}</Text>
-            <Text style={styles.statLabel}>Planned Hours</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statValue, { color: theme.text }]}>
+              {plannedHours}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>
+              Planned Hours
+            </Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activity Progress</Text>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Activity Progress
+          </Text>
 
           <View style={styles.progressSummaryRow}>
-            <View style={styles.progressSummaryCard}>
-              <Text style={styles.progressSummaryValue}>
+            <View
+              style={[
+                styles.progressSummaryCard,
+                { backgroundColor: theme.inputBackground },
+              ]}
+            >
+              <Text
+                style={[styles.progressSummaryValue, { color: theme.text }]}
+              >
                 {completedActivities}
               </Text>
-              <Text style={styles.progressSummaryLabel}>Completed</Text>
+              <Text
+                style={[
+                  styles.progressSummaryLabel,
+                  { color: theme.secondaryText },
+                ]}
+              >
+                Completed
+              </Text>
             </View>
 
-            <View style={styles.progressSummaryCard}>
-              <Text style={styles.progressSummaryValue}>{plannedActivities}</Text>
-              <Text style={styles.progressSummaryLabel}>Planned</Text>
+            <View
+              style={[
+                styles.progressSummaryCard,
+                { backgroundColor: theme.inputBackground },
+              ]}
+            >
+              <Text
+                style={[styles.progressSummaryValue, { color: theme.text }]}
+              >
+                {plannedActivities}
+              </Text>
+              <Text
+                style={[
+                  styles.progressSummaryLabel,
+                  { color: theme.secondaryText },
+                ]}
+              >
+                Planned
+              </Text>
             </View>
 
-            <View style={styles.progressSummaryCard}>
-              <Text style={styles.progressSummaryValue}>
+            <View
+              style={[
+                styles.progressSummaryCard,
+                { backgroundColor: theme.inputBackground },
+              ]}
+            >
+              <Text
+                style={[styles.progressSummaryValue, { color: theme.text }]}
+              >
                 {completionPercentage}%
               </Text>
-              <Text style={styles.progressSummaryLabel}>Completion</Text>
+              <Text
+                style={[
+                  styles.progressSummaryLabel,
+                  { color: theme.secondaryText },
+                ]}
+              >
+                Completion
+              </Text>
             </View>
           </View>
 
-          <Text style={styles.progressBreakdownText}>
+          <Text
+            style={[styles.progressBreakdownText, { color: theme.secondaryText }]}
+          >
             Completed hours count toward your target progress. Planned hours show
             what is still scheduled.
           </Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Hours by Category</Text>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Hours by Category
+          </Text>
 
-          <View style={styles.segmentedControl}>
-            {(['daily', 'weekly', 'monthly'] as InsightsViewMode[]).map((mode) => {
-              const isSelected = viewMode === mode;
+          <View
+            style={[
+              styles.segmentedControl,
+              {
+                backgroundColor: theme.muted,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            {(['daily', 'weekly', 'monthly'] as InsightsViewMode[]).map(
+              (mode) => {
+                const isSelected = viewMode === mode;
 
-              return (
-                <Pressable
-                  key={mode}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Show ${mode} category insights`}
-                  onPress={() => setViewMode(mode)}
-                  style={[
-                    styles.segmentButton,
-                    isSelected && styles.segmentButtonSelected,
-                  ]}
-                >
-                  <Text
+                return (
+                  <Pressable
+                    key={mode}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Show ${mode} category insights`}
+                    onPress={() => setViewMode(mode)}
                     style={[
-                      styles.segmentText,
-                      isSelected && styles.segmentTextSelected,
+                      styles.segmentButton,
+                      isSelected && [
+                        styles.segmentButtonSelected,
+                        {
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
+                        },
+                      ],
                     ]}
                   >
-                    {mode}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.segmentText,
+                        { color: isSelected ? theme.text : theme.secondaryText },
+                      ]}
+                    >
+                      {mode}
+                    </Text>
+                  </Pressable>
+                );
+              }
+            )}
           </View>
 
-          <Text style={styles.rangeText}>
+          <Text style={[styles.rangeText, { color: theme.secondaryText }]}>
             {formatRangeLabel(viewMode, rangeStart, rangeEnd)}
           </Text>
 
           {categoryTotals.every((category) => category.completed === 0) ? (
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
               No completed category data available for this period.
             </Text>
           ) : (
@@ -306,19 +442,33 @@ export default function InsightsScreen() {
                 return (
                   <View key={category.id} style={styles.chartRow}>
                     <View style={styles.chartHeader}>
-                      <Text style={styles.chartLabel}>{category.name}</Text>
-                      <Text style={styles.chartValue}>
+                      <Text style={[styles.chartLabel, { color: theme.text }]}>
+                        {category.name}
+                      </Text>
+                      <Text
+                        style={[styles.chartValue, { color: theme.secondaryText }]}
+                      >
                         {category.completed} hrs
                       </Text>
                     </View>
 
-                    <Text style={styles.secondaryLine}>
+                    <Text
+                      style={[
+                        styles.secondaryLine,
+                        { color: theme.secondaryText },
+                      ]}
+                    >
                       {category.planned > 0
                         ? `${category.planned} planned hrs still upcoming`
                         : 'No planned hours remaining'}
                     </Text>
 
-                    <View style={styles.barTrack}>
+                    <View
+                      style={[
+                        styles.barTrack,
+                        { backgroundColor: theme.muted },
+                      ]}
+                    >
                       <View
                         style={[
                           styles.barFill,
@@ -335,11 +485,21 @@ export default function InsightsScreen() {
           )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Trip Progress</Text>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Trip Progress
+          </Text>
 
           {tripTotals.every((trip) => trip.total === 0) ? (
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
               No trip activity data available yet.
             </Text>
           ) : (
@@ -354,18 +514,32 @@ export default function InsightsScreen() {
                 return (
                   <View key={trip.id} style={styles.chartRow}>
                     <View style={styles.chartHeader}>
-                      <Text style={styles.chartLabel}>{trip.title}</Text>
-                      <Text style={styles.chartValue}>
+                      <Text style={[styles.chartLabel, { color: theme.text }]}>
+                        {trip.title}
+                      </Text>
+                      <Text
+                        style={[styles.chartValue, { color: theme.secondaryText }]}
+                      >
                         {trip.completed} hrs done
                       </Text>
                     </View>
 
-                    <Text style={styles.tripDestination}>
+                    <Text
+                      style={[
+                        styles.tripDestination,
+                        { color: theme.secondaryText },
+                      ]}
+                    >
                       {trip.destination} • {trip.activityCount} activities •{' '}
                       {trip.planned} planned hrs
                     </Text>
 
-                    <View style={styles.barTrack}>
+                    <View
+                      style={[
+                        styles.barTrack,
+                        { backgroundColor: theme.muted },
+                      ]}
+                    >
                       <View style={[styles.barFill, { width }]} />
                     </View>
                   </View>
@@ -374,18 +548,41 @@ export default function InsightsScreen() {
           )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Destination List</Text>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Destination List
+          </Text>
 
           {trips.length === 0 ? (
-            <Text style={styles.emptyText}>No trips added yet.</Text>
+            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
+              No trips added yet.
+            </Text>
           ) : (
             trips.map((trip) => (
               <View key={trip.id} style={styles.destinationRow}>
                 <Text style={styles.destinationPin}>📍</Text>
                 <View style={styles.destinationTextBlock}>
-                  <Text style={styles.destinationTitle}>{trip.destination}</Text>
-                  <Text style={styles.destinationSubtitle}>{trip.title}</Text>
+                  <Text
+                    style={[styles.destinationTitle, { color: theme.text }]}
+                  >
+                    {trip.destination}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.destinationSubtitle,
+                      { color: theme.secondaryText },
+                    ]}
+                  >
+                    {trip.title}
+                  </Text>
                 </View>
               </View>
             ))
@@ -398,7 +595,6 @@ export default function InsightsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 10,
@@ -414,36 +610,37 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   statCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     flexGrow: 1,
     padding: 14,
     width: '47%',
+    borderWidth: 1,
   },
   statValue: {
-    color: '#0F172A',
     fontSize: 24,
     fontWeight: '800',
   },
   statLabel: {
-    color: '#64748B',
     fontSize: 14,
     marginTop: 4,
   },
   section: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     marginBottom: 14,
     padding: 14,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   sectionTitle: {
-    color: '#0F172A',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 12,
   },
   emptyText: {
-    color: '#64748B',
     fontSize: 14,
   },
   progressSummaryRow: {
@@ -451,34 +648,30 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   progressSummaryCard: {
-    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     flex: 1,
     padding: 12,
     alignItems: 'center',
   },
   progressSummaryValue: {
-    color: '#0F172A',
     fontSize: 20,
     fontWeight: '800',
   },
   progressSummaryLabel: {
-    color: '#64748B',
     fontSize: 12,
     marginTop: 4,
     textAlign: 'center',
   },
   progressBreakdownText: {
-    color: '#475569',
     fontSize: 14,
     lineHeight: 20,
     marginTop: 12,
   },
   segmentedControl: {
-    backgroundColor: '#E5E7EB',
     borderRadius: 12,
     flexDirection: 'row',
     padding: 3,
+    borderWidth: 1,
   },
   segmentButton: {
     alignItems: 'center',
@@ -487,19 +680,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   segmentButtonSelected: {
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
   },
   segmentText: {
-    color: '#475569',
     fontSize: 14,
     fontWeight: '700',
     textTransform: 'capitalize',
   },
-  segmentTextSelected: {
-    color: '#0F172A',
-  },
   rangeText: {
-    color: '#64748B',
     fontSize: 13,
     fontWeight: '600',
     marginTop: 10,
@@ -514,28 +702,23 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   chartLabel: {
-    color: '#334155',
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
     marginRight: 8,
   },
   chartValue: {
-    color: '#64748B',
     fontSize: 14,
   },
   secondaryLine: {
-    color: '#64748B',
     fontSize: 12,
     marginBottom: 6,
   },
   tripDestination: {
-    color: '#64748B',
     fontSize: 12,
     marginBottom: 6,
   },
   barTrack: {
-    backgroundColor: '#E2E8F0',
     borderRadius: 999,
     height: 12,
     overflow: 'hidden',
@@ -558,12 +741,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   destinationTitle: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
   },
   destinationSubtitle: {
-    color: '#64748B',
     fontSize: 13,
     marginTop: 2,
   },

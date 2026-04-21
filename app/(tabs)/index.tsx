@@ -1,5 +1,6 @@
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
+import { useTheme } from '@/hooks/useTheme';
 import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import {
@@ -101,6 +102,8 @@ function getCardAccent(status: string) {
 export default function IndexScreen() {
   const router = useRouter();
   const context = useContext(TripPlannerContext);
+  const { theme, isDark } = useTheme();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDestination, setSelectedDestination] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
@@ -136,7 +139,9 @@ export default function IndexScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+    >
       <ScreenHeader
         title="Travel Planner"
         subtitle={`${trips.length} trips planned`}
@@ -148,7 +153,15 @@ export default function IndexScreen() {
         value={searchQuery}
         onChangeText={setSearchQuery}
         placeholder="Search trips"
-        style={styles.searchInput}
+        placeholderTextColor={theme.secondaryText}
+        style={[
+          styles.searchInput,
+          {
+            backgroundColor: theme.inputBackground,
+            borderColor: theme.border,
+            color: theme.text,
+          },
+        ]}
       />
 
       <View style={styles.filtersSection}>
@@ -168,13 +181,18 @@ export default function IndexScreen() {
                 onPress={() => setSelectedStatus(status)}
                 style={[
                   styles.filterChip,
-                  isSelected && styles.filterChipSelected,
+                  {
+                    backgroundColor: isSelected ? theme.text : theme.card,
+                    borderColor: isSelected ? theme.text : theme.border,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.filterChipText,
-                    isSelected && styles.filterChipTextSelected,
+                    {
+                      color: isSelected ? '#FFFFFF' : theme.text,
+                    },
                   ]}
                 >
                   {status}
@@ -200,13 +218,18 @@ export default function IndexScreen() {
                 onPress={() => setSelectedDestination(destination)}
                 style={[
                   styles.filterChip,
-                  isSelected && styles.filterChipSelected,
+                  {
+                    backgroundColor: isSelected ? theme.text : theme.card,
+                    borderColor: isSelected ? theme.text : theme.border,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.filterChipText,
-                    isSelected && styles.filterChipTextSelected,
+                    {
+                      color: isSelected ? '#FFFFFF' : theme.text,
+                    },
                   ]}
                 >
                   {destination}
@@ -222,7 +245,9 @@ export default function IndexScreen() {
         showsVerticalScrollIndicator={false}
       >
         {filteredTrips.length === 0 ? (
-          <Text style={styles.emptyText}>No trips match your filters</Text>
+          <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
+            No trips match your filters
+          </Text>
         ) : (
           filteredTrips.map((trip: Trip) => {
             const status = getTripStatus(trip.startDate, trip.endDate);
@@ -232,15 +257,30 @@ export default function IndexScreen() {
             return (
               <Pressable
                 key={trip.id}
-                style={[styles.card, { borderColor: accent.borderColor }]}
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: accent.borderColor,
+                    shadowOpacity: isDark ? 0 : 0.04,
+                  },
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel={`Open trip ${trip.title}`}
                 onPress={() => router.push(`/trips/${trip.id}`)}
               >
-                <Text style={styles.cardTitle}>{trip.title}</Text>
-                <Text style={styles.cardSubtitle}>{trip.destination}</Text>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>
+                  {trip.title}
+                </Text>
+                <Text
+                  style={[styles.cardSubtitle, { color: theme.secondaryText }]}
+                >
+                  {trip.destination}
+                </Text>
 
-                <Text style={styles.cardDates}>
+                <Text
+                  style={[styles.cardDates, { color: theme.secondaryText }]}
+                >
                   {formatIrishDate(trip.startDate)} -{' '}
                   {formatIrishDate(trip.endDate)}
                 </Text>
@@ -263,7 +303,10 @@ export default function IndexScreen() {
                 </Text>
 
                 {trip.notes ? (
-                  <Text style={styles.cardNotes} numberOfLines={2}>
+                  <Text
+                    style={[styles.cardNotes, { color: theme.secondaryText }]}
+                    numberOfLines={2}
+                  >
                     {trip.notes}
                   </Text>
                 ) : null}
@@ -278,14 +321,11 @@ export default function IndexScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 2,
   },
   searchInput: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
     borderRadius: 10,
     borderWidth: 1,
     marginTop: 8,
@@ -301,54 +341,43 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   filterChip: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  filterChipSelected: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
-  },
   filterChipText: {
-    color: '#334155',
     fontSize: 12,
     fontWeight: '600',
-  },
-  filterChipTextSelected: {
-    color: '#FFFFFF',
   },
   listContent: {
     paddingTop: 8,
     paddingBottom: 24,
   },
   emptyText: {
-    color: '#475569',
     fontSize: 15,
     paddingTop: 12,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 2,
     marginBottom: 10,
     padding: 14,
+    shadowColor: '#000',
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   cardTitle: {
-    color: '#0F172A',
     fontSize: 17,
     fontWeight: '700',
   },
   cardSubtitle: {
-    color: '#334155',
     fontSize: 14,
     marginTop: 3,
   },
   cardDates: {
-    color: '#64748B',
     fontSize: 13,
     marginTop: 8,
   },
@@ -369,7 +398,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   cardNotes: {
-    color: '#475569',
     fontSize: 13,
     marginTop: 8,
   },

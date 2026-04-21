@@ -3,6 +3,7 @@ import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
 import { db } from '@/db/client';
 import { categories as categoriesTable } from '@/db/schema';
+import { useTheme } from '@/hooks/useTheme';
 import { eq } from 'drizzle-orm';
 import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
@@ -45,6 +46,7 @@ const iconOptions = [
 export default function AddCategory() {
   const router = useRouter();
   const context = useContext(TripPlannerContext);
+  const { theme } = useTheme();
 
   const [name, setName] = useState('');
   const [color, setColor] = useState('#3B82F6');
@@ -86,7 +88,7 @@ export default function AddCategory() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader
           title="Add Category"
@@ -100,7 +102,7 @@ export default function AddCategory() {
             onChangeText={setName}
           />
 
-          <Text style={styles.label}>Choose Colour</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Choose Colour</Text>
           <View style={styles.optionGrid}>
             {colorOptions.map((option) => {
               const isSelected = color === option;
@@ -113,15 +115,18 @@ export default function AddCategory() {
                   onPress={() => setColor(option)}
                   style={[
                     styles.colorButton,
-                    { backgroundColor: option },
-                    isSelected && styles.colorButtonSelected,
+                    {
+                      backgroundColor: option,
+                      borderColor: isSelected ? theme.text : theme.border,
+                      borderWidth: isSelected ? 3 : 1,
+                    },
                   ]}
                 />
               );
             })}
           </View>
 
-          <Text style={styles.label}>Choose Icon</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Choose Icon</Text>
           <View style={styles.optionGrid}>
             {iconOptions.map((option) => {
               const isSelected = icon === option;
@@ -134,7 +139,11 @@ export default function AddCategory() {
                   onPress={() => setIcon(option)}
                   style={[
                     styles.iconButton,
-                    isSelected && styles.iconButtonSelected,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: isSelected ? theme.text : theme.border,
+                      borderWidth: isSelected ? 2 : 1,
+                    },
                   ]}
                 >
                   <Text style={styles.iconText}>{option}</Text>
@@ -162,7 +171,6 @@ export default function AddCategory() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     padding: 20,
   },
@@ -173,7 +181,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   label: {
-    color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
@@ -186,29 +193,16 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   colorButton: {
-    borderColor: '#CBD5E1',
     borderRadius: 999,
-    borderWidth: 1,
     height: 42,
     width: 42,
   },
-  colorButtonSelected: {
-    borderColor: '#0F172A',
-    borderWidth: 3,
-  },
   iconButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
     borderRadius: 12,
-    borderWidth: 1,
     height: 46,
     justifyContent: 'center',
     width: 46,
-  },
-  iconButtonSelected: {
-    borderColor: '#0F172A',
-    borderWidth: 2,
   },
   iconText: {
     fontSize: 24,

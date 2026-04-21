@@ -1,3 +1,4 @@
+import { useTheme } from '@/hooks/useTheme';
 import { StyleSheet, Text, View } from 'react-native';
 
 type Props = {
@@ -6,10 +7,16 @@ type Props = {
 };
 
 export default function ScreenHeader({ title, subtitle }: Props) {
+  const { theme } = useTheme();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+      {subtitle ? (
+        <Text style={[styles.subtitle, { color: theme.secondaryText }]}>
+          {subtitle}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -19,12 +26,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    color: '#111827',
     fontSize: 28,
     fontWeight: '700',
   },
   subtitle: {
-    color: '#6B7280',
     fontSize: 14,
     marginTop: 2,
   },

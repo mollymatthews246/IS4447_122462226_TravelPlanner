@@ -1,9 +1,9 @@
 import FormField from '@/components/ui/form-field';
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
-import { Colors } from '@/constants/theme';
 import { db } from '@/db/client';
 import { trips as tripsTable } from '@/db/schema';
+import { useTheme } from '@/hooks/useTheme';
 import { eq } from 'drizzle-orm';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext, useEffect, useMemo, useState } from 'react';
@@ -43,6 +43,7 @@ export default function EditTrip() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const context = useContext(TripPlannerContext);
+  const { theme, isDark } = useTheme();
 
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
@@ -66,7 +67,7 @@ export default function EditTrip() {
 
   if (!context || !trip) {
     return (
-      <SafeAreaView style={{ flex: 1, padding: 40 }}>
+      <SafeAreaView style={{ flex: 1, padding: 40, backgroundColor: theme.background }}>
         <Text style={{ fontSize: 16, color: 'red' }}>
           Trip not found.
         </Text>
@@ -75,6 +76,8 @@ export default function EditTrip() {
   }
 
   const { setTrips, currentUser } = context;
+
+  const tintColor = '#0a7ea4';
 
   const onDayPress = (day: { dateString: string }) => {
     if (!startDate || endDate) {
@@ -100,7 +103,7 @@ export default function EditTrip() {
       marks[startDate] = {
         startingDay: true,
         endingDay: true,
-        color: Colors.light.tint,
+        color: tintColor,
         textColor: '#FFFFFF',
       };
     }
@@ -129,14 +132,14 @@ export default function EditTrip() {
         marks[dateStr] = {
           startingDay: isStart,
           endingDay: isEnd,
-          color: isStart || isEnd ? Colors.light.tint : '#D4EEFA',
-          textColor: isStart || isEnd ? '#FFFFFF' : '#065A82',
+          color: isStart || isEnd ? tintColor : isDark ? '#1A3A4A' : '#D4EEFA',
+          textColor: isStart || isEnd ? '#FFFFFF' : isDark ? '#7DD3FC' : '#065A82',
         };
       });
     }
 
     return marks;
-  }, [startDate, endDate]);
+  }, [startDate, endDate, isDark]);
 
   const saveChanges = async () => {
     if (!currentUser) return;
@@ -170,7 +173,7 @@ export default function EditTrip() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -179,8 +182,8 @@ export default function EditTrip() {
         <ScreenHeader title="Edit Trip" subtitle={`Update ${trip.title}`} />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Trip Details</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: theme.secondaryText }]}>Trip Details</Text>
+          <View style={[styles.card, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
             <FormField
               label="Trip Title"
               value={title}
@@ -197,27 +200,27 @@ export default function EditTrip() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Travel Dates</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: theme.secondaryText }]}>Travel Dates</Text>
+          <View style={[styles.card, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
             <Pressable
               style={styles.calendarToggle}
               onPress={() => setShowCalendar(!showCalendar)}
             >
-              <Text style={styles.calendarToggleText}>
+              <Text style={[styles.calendarToggleText, { color: theme.text }]}>
                 {startDate && endDate
                   ? formatDisplayDate(startDate) +
                     ' – ' +
                     formatDisplayDate(endDate)
                   : 'Tap to select dates'}
               </Text>
-              <Text style={styles.chevron}>
+              <Text style={[styles.chevron, { color: theme.secondaryText }]}>
                 {showCalendar ? '▲' : '▼'}
               </Text>
             </Pressable>
 
             {startDate && endDate ? (
-              <View style={styles.nightsBadge}>
-                <Text style={styles.nightsText}>
+              <View style={[styles.nightsBadge, { backgroundColor: isDark ? '#1A3A4A' : '#E8F6FC' }]}>
+                <Text style={[styles.nightsText, { color: isDark ? '#7DD3FC' : tintColor }]}>
                   {getNightCount(startDate, endDate)} night
                   {getNightCount(startDate, endDate) !== 1 ? 's' : ''}
                 </Text>
@@ -225,8 +228,8 @@ export default function EditTrip() {
             ) : null}
 
             {showCalendar ? (
-              <View style={styles.calendarWrapper}>
-                <Text style={styles.calendarHint}>
+              <View style={[styles.calendarWrapper, { borderTopColor: theme.border }]}>
+                <Text style={[styles.calendarHint, { color: theme.secondaryText }]}>
                   {!startDate
                     ? 'Tap your departure date'
                     : !endDate
@@ -240,15 +243,15 @@ export default function EditTrip() {
                   theme={{
                     backgroundColor: 'transparent',
                     calendarBackground: 'transparent',
-                    todayTextColor: Colors.light.tint,
-                    dayTextColor: Colors.light.text,
-                    textDisabledColor: '#CBD5E1',
-                    monthTextColor: Colors.light.text,
+                    todayTextColor: tintColor,
+                    dayTextColor: theme.text,
+                    textDisabledColor: theme.border,
+                    monthTextColor: theme.text,
                     textMonthFontWeight: '600',
                     textMonthFontSize: 15,
                     textDayFontSize: 14,
                     textDayHeaderFontSize: 12,
-                    arrowColor: Colors.light.tint,
+                    arrowColor: tintColor,
                   }}
                 />
               </View>
@@ -257,14 +260,14 @@ export default function EditTrip() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notes</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: theme.secondaryText }]}>Notes</Text>
+          <View style={[styles.card, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
             <TextInput
-              style={styles.notesInput}
+              style={[styles.notesInput, { color: theme.text }]}
               value={notes}
               onChangeText={setNotes}
               placeholder="Packing reminders, booking refs, ideas..."
-              placeholderTextColor={Colors.light.icon}
+              placeholderTextColor={theme.secondaryText}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -293,7 +296,6 @@ export default function EditTrip() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
   },
   content: {
@@ -306,19 +308,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.light.icon,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
     marginLeft: 4,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
   },
@@ -329,15 +328,12 @@ const styles = StyleSheet.create({
   },
   calendarToggleText: {
     fontSize: 15,
-    color: Colors.light.text,
     fontWeight: '500',
   },
   chevron: {
     fontSize: 12,
-    color: Colors.light.icon,
   },
   nightsBadge: {
-    backgroundColor: '#E8F6FC',
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -346,24 +342,20 @@ const styles = StyleSheet.create({
   },
   nightsText: {
     fontSize: 13,
-    color: Colors.light.tint,
     fontWeight: '500',
   },
   calendarWrapper: {
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
     paddingTop: 12,
   },
   calendarHint: {
     fontSize: 13,
-    color: Colors.light.icon,
     textAlign: 'center',
     marginBottom: 8,
   },
   notesInput: {
     fontSize: 15,
-    color: Colors.light.text,
     minHeight: 100,
     paddingTop: 0,
   },

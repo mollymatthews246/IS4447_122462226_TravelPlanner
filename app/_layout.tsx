@@ -11,6 +11,7 @@ import { eq } from 'drizzle-orm';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import LoadingScreen from '../components/ui/loading-screen';
+import { ThemeProvider } from '../context/theme-context';
 import {
   Activity,
   Category,
@@ -171,21 +172,23 @@ export default function RootLayout() {
   }
 
   return (
-    <TripPlannerContext.Provider
-      value={{
-        currentUser,
-        setCurrentUser,
-        trips,
-        setTrips,
-        activities,
-        setActivities,
-        categories,
-        setCategories,
-        targets,
-        setTargets,
-      }}
-    >
-      <Stack screenOptions={{ headerShown: false }} />
-    </TripPlannerContext.Provider>
+    <ThemeProvider>
+      <TripPlannerContext.Provider
+        value={{
+          currentUser,
+          setCurrentUser,
+          trips,
+          setTrips,
+          activities,
+          setActivities,
+          categories,
+          setCategories,
+          targets,
+          setTargets,
+        }}
+      >
+        <Stack screenOptions={{ headerShown: false }} />
+      </TripPlannerContext.Provider>
+    </ThemeProvider>
   );
 }

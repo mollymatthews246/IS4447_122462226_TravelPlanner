@@ -1,6 +1,6 @@
-import { Colors } from '@/constants/theme';
 import { db } from '@/db/client';
 import { activities as activitiesTable, trips as tripsTable } from '@/db/schema';
+import { useTheme } from '@/hooks/useTheme';
 import { eq } from 'drizzle-orm';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext } from 'react';
@@ -40,6 +40,7 @@ export default function TripDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const context = useContext(TripPlannerContext);
+  const { theme, isDark } = useTheme();
 
   if (!context) return null;
 
@@ -98,23 +99,29 @@ export default function TripDetail() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.topBarButton}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[styles.topBarButton, { backgroundColor: theme.card }]}
+          >
             <Text style={styles.topBarIcon}>‹</Text>
           </Pressable>
           <View style={styles.topBarRight}>
             <Pressable
               onPress={() => router.push(`/trips/${id}/edit`)}
-              style={styles.topBarButton}
+              style={[styles.topBarButton, { backgroundColor: theme.card }]}
             >
               <Text style={styles.topBarIcon}>✎</Text>
             </Pressable>
-            <Pressable onPress={deleteTrip} style={styles.topBarButton}>
+            <Pressable
+              onPress={deleteTrip}
+              style={[styles.topBarButton, { backgroundColor: theme.card }]}
+            >
               <Text style={styles.topBarIcon}>🗑</Text>
             </Pressable>
           </View>
@@ -127,53 +134,53 @@ export default function TripDetail() {
           </Text>
         </View>
 
-        <Text style={styles.tripTitle}>{trip.title}</Text>
+        <Text style={[styles.tripTitle, { color: theme.text }]}>{trip.title}</Text>
 
         <View style={styles.dateRow}>
           <Text style={styles.dateIcon}>📅</Text>
           <View>
-            <Text style={styles.dateLabel}>DATES</Text>
-            <Text style={styles.dateValue}>
+            <Text style={[styles.dateLabel, { color: theme.secondaryText }]}>DATES</Text>
+            <Text style={[styles.dateValue, { color: theme.text }]}>
               {formatShortDate(trip.startDate)} – {formatShortDate(trip.endDate)}
             </Text>
           </View>
-          <View style={styles.dateDivider} />
+          <View style={[styles.dateDivider, { backgroundColor: theme.border }]} />
           <View>
-            <Text style={styles.dateLabel}>DURATION</Text>
-            <Text style={styles.dateValue}>
+            <Text style={[styles.dateLabel, { color: theme.secondaryText }]}>DURATION</Text>
+            <Text style={[styles.dateValue, { color: theme.text }]}>
               {getDayCount(trip.startDate, trip.endDate)} days
             </Text>
           </View>
         </View>
 
         {trip.notes ? (
-          <View style={styles.notesCard}>
+          <View style={[styles.notesCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
             <Text style={styles.notesQuote}>"</Text>
-            <Text style={styles.notesText}>{trip.notes}</Text>
+            <Text style={[styles.notesText, { color: theme.secondaryText }]}>{trip.notes}</Text>
           </View>
         ) : null}
 
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{tripActivities.length}</Text>
-            <Text style={styles.statLabel}>ACTIVITIES</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
+            <Text style={[styles.statNumber, { color: theme.text }]}>{tripActivities.length}</Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>ACTIVITIES</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{completedCount}</Text>
-            <Text style={styles.statLabel}>COMPLETED</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
+            <Text style={[styles.statNumber, { color: theme.text }]}>{completedCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>COMPLETED</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{completedHours}h</Text>
-            <Text style={styles.statLabel}>DONE</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
+            <Text style={[styles.statNumber, { color: theme.text }]}>{completedHours}h</Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>DONE</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{plannedHours}h</Text>
-            <Text style={styles.statLabel}>PLANNED</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
+            <Text style={[styles.statNumber, { color: theme.text }]}>{plannedHours}h</Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>PLANNED</Text>
           </View>
         </View>
 
         <View style={styles.activitiesHeader}>
-          <Text style={styles.activitiesTitle}>Activities</Text>
+          <Text style={[styles.activitiesTitle, { color: theme.text }]}>Activities</Text>
           <Pressable
             style={styles.addButton}
             onPress={() => router.push(`/activities/add?tripId=${trip.id}`)}
@@ -183,8 +190,8 @@ export default function TripDetail() {
         </View>
 
         {tripActivities.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>
+          <View style={[styles.emptyCard, { backgroundColor: theme.card, shadowOpacity: isDark ? 0 : 0.05 }]}>
+            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
               No activities added yet. Add your first activity for this trip.
             </Text>
           </View>
@@ -193,7 +200,7 @@ export default function TripDetail() {
             const category = categories.find(
               (cat) => cat.id === activity.categoryId
             );
-            const borderColor = category?.color ?? '#CBD5E1';
+            const borderColor = category?.color ?? theme.border;
             const isCompleted = activity.status === 'completed';
 
             return (
@@ -201,12 +208,16 @@ export default function TripDetail() {
                 key={activity.id}
                 style={[
                   styles.activityCard,
-                  { borderLeftColor: borderColor },
+                  {
+                    backgroundColor: theme.card,
+                    borderLeftColor: borderColor,
+                    shadowOpacity: isDark ? 0 : 0.05,
+                  },
                 ]}
                 onPress={() => router.push(`/activities/${activity.id}/edit`)}
               >
                 <View style={styles.activityTop}>
-                  <Text style={styles.activityTitle}>{activity.title}</Text>
+                  <Text style={[styles.activityTitle, { color: theme.text }]}>{activity.title}</Text>
                   <View
                     style={[
                       styles.statusBadge,
@@ -237,20 +248,20 @@ export default function TripDetail() {
                 </View>
 
                 <View style={styles.activityMeta}>
-                  <Text style={styles.metaText}>
+                  <Text style={[styles.metaText, { color: theme.secondaryText }]}>
                     📅 {formatActivityDate(activity.activityDate)}
                   </Text>
-                  <Text style={styles.metaText}>⏱ {activity.duration}h</Text>
+                  <Text style={[styles.metaText, { color: theme.secondaryText }]}>⏱ {activity.duration}h</Text>
                   {category ? (
-                    <Text style={styles.metaText}>
+                    <Text style={[styles.metaText, { color: theme.secondaryText }]}>
                       {category.icon} {category.name}
                     </Text>
                   ) : null}
                 </View>
 
                 {activity.notes ? (
-                  <View style={styles.activityNotesBar}>
-                    <Text style={styles.activityNotesText}>
+                  <View style={[styles.activityNotesBar, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.activityNotesText, { color: theme.secondaryText }]}>
                       {activity.notes}
                     </Text>
                   </View>
@@ -286,7 +297,6 @@ export default function TripDetail() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
   },
   content: {
@@ -305,7 +315,6 @@ const styles = StyleSheet.create({
   topBarButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     height: 40,
     width: 40,
@@ -342,7 +351,6 @@ const styles = StyleSheet.create({
   tripTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: Colors.light.text,
     marginBottom: 14,
   },
   dateRow: {
@@ -357,29 +365,24 @@ const styles = StyleSheet.create({
   dateLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.light.icon,
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   dateValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.light.text,
   },
   dateDivider: {
     width: 1,
     height: 30,
-    backgroundColor: '#E2E8F0',
     marginHorizontal: 16,
   },
   notesCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
   },
@@ -392,7 +395,6 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 15,
-    color: '#475569',
     lineHeight: 22,
     fontStyle: 'italic',
   },
@@ -404,26 +406,22 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
   },
   statNumber: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.light.text,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.light.icon,
     letterSpacing: 0.5,
   },
   activitiesHeader: {
@@ -435,10 +433,9 @@ const styles = StyleSheet.create({
   activitiesTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.light.text,
   },
   addButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#0a7ea4',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -449,14 +446,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   activityCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderLeftWidth: 4,
     padding: 14,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
   },
@@ -469,7 +464,6 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.light.text,
     flex: 1,
     marginRight: 8,
   },
@@ -497,12 +491,10 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: Colors.light.icon,
     marginRight: 14,
     marginBottom: 4,
   },
   activityNotesBar: {
-    backgroundColor: '#F8FAFC',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -510,7 +502,6 @@ const styles = StyleSheet.create({
   },
   activityNotesText: {
     fontSize: 13,
-    color: '#64748B',
     lineHeight: 18,
   },
   actionRow: {
@@ -537,19 +528,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 20,
     marginBottom: 12,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
   },
   emptyText: {
-    color: Colors.light.icon,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,

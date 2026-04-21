@@ -1,5 +1,6 @@
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
+import { useTheme } from '@/hooks/useTheme';
 import { useRouter } from 'expo-router';
 import { useContext } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -48,23 +49,23 @@ function getStatus(progress: number, targetValue: number) {
 function getStatusStyles(status: string) {
   if (status === 'Exceeded') {
     return {
-      badge: styles.statusExceeded,
-      text: styles.statusExceededText,
+      badgeBackground: '#DBEAFE',
+      textColor: '#1D4ED8',
       bar: styles.progressExceeded,
     };
   }
 
   if (status === 'Completed') {
     return {
-      badge: styles.statusCompleted,
-      text: styles.statusCompletedText,
+      badgeBackground: '#DCFCE7',
+      textColor: '#15803D',
       bar: styles.progressCompleted,
     };
   }
 
   return {
-    badge: styles.statusProgress,
-    text: styles.statusProgressText,
+    badgeBackground: '#FEF3C7',
+    textColor: '#B45309',
     bar: styles.progressInProgress,
   };
 }
@@ -72,13 +73,16 @@ function getStatusStyles(status: string) {
 export default function TargetsScreen() {
   const router = useRouter();
   const context = useContext(TripPlannerContext);
+  const { theme, isDark } = useTheme();
 
   if (!context) return null;
 
   const { targets, trips, categories, activities } = context;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+    >
       <ScreenHeader
         title="Targets"
         subtitle={`${targets.length} trip goals tracking your holiday progress`}
@@ -94,9 +98,19 @@ export default function TargetsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {targets.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No targets yet</Text>
-            <Text style={styles.emptySubtitle}>
+          <View
+            style={[
+              styles.emptyCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              No targets yet
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: theme.secondaryText }]}>
               Set a category hours goal for a trip and track it as you add
               activities.
             </Text>
@@ -121,7 +135,14 @@ export default function TargetsScreen() {
             return (
               <Pressable
                 key={target.id}
-                style={styles.card}
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                    shadowOpacity: isDark ? 0 : 0.04,
+                  },
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel={`Edit ${category?.name ?? 'target'} target`}
                 onPress={() =>
@@ -133,43 +154,85 @@ export default function TargetsScreen() {
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.titleBlock}>
-                    <Text style={styles.cardTitle}>
+                    <Text style={[styles.cardTitle, { color: theme.text }]}>
                       {category?.name ?? 'Category'}
                     </Text>
-                    <Text style={styles.cardSubtitle}>
+                    <Text
+                      style={[
+                        styles.cardSubtitle,
+                        { color: theme.secondaryText },
+                      ]}
+                    >
                       {trip?.title ?? 'Trip'}
                     </Text>
                   </View>
 
-                  <View style={[styles.statusBadge, statusStyles.badge]}>
-                    <Text style={[styles.statusText, statusStyles.text]}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: statusStyles.badgeBackground },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: statusStyles.textColor },
+                      ]}
+                    >
                       {status}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.metaRow}>
-                  <View style={styles.metaChip}>
-                    <Text style={styles.metaChipText}>Hours Goal</Text>
+                  <View
+                    style={[
+                      styles.metaChip,
+                      {
+                        backgroundColor: theme.inputBackground,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.metaChipText, { color: theme.text }]}
+                    >
+                      Hours Goal
+                    </Text>
                   </View>
 
-                  <View style={styles.metaChip}>
-                    <Text style={styles.metaChipText}>
+                  <View
+                    style={[
+                      styles.metaChip,
+                      {
+                        backgroundColor: theme.inputBackground,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.metaChipText, { color: theme.text }]}
+                    >
                       {formatIrishDate(target.startDate)} -{' '}
                       {formatIrishDate(target.endDate)}
                     </Text>
                   </View>
                 </View>
 
-                <Text style={styles.goalText}>
+                <Text style={[styles.goalText, { color: theme.text }]}>
                   Goal: {target.targetValue} hours
                 </Text>
 
-                <Text style={styles.progressText}>
+                <Text style={[styles.progressText, { color: theme.secondaryText }]}>
                   Progress so far: {progress} hours
                 </Text>
 
-                <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressTrack,
+                    { backgroundColor: theme.muted },
+                  ]}
+                >
                   <View
                     style={[
                       styles.progressFill,
@@ -179,7 +242,7 @@ export default function TargetsScreen() {
                   />
                 </View>
 
-                <Text style={styles.detailText}>
+                <Text style={[styles.detailText, { color: theme.secondaryText }]}>
                   {remaining > 0
                     ? `${remaining} hours left to complete this goal`
                     : remaining === 0
@@ -187,7 +250,9 @@ export default function TargetsScreen() {
                       : `You exceeded this goal by ${Math.abs(remaining)} hours`}
                 </Text>
 
-                <Text style={styles.tapText}>Tap to edit</Text>
+                <Text style={[styles.tapText, { color: theme.secondaryText }]}>
+                  Tap to edit
+                </Text>
               </Pressable>
             );
           })
@@ -199,7 +264,6 @@ export default function TargetsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 10,
@@ -209,30 +273,27 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 24,
+    borderWidth: 1,
   },
   emptyTitle: {
-    color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
     textAlign: 'center',
   },
   emptySubtitle: {
-    color: '#64748B',
     fontSize: 14,
     lineHeight: 20,
     marginTop: 8,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     marginBottom: 14,
     padding: 16,
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
@@ -247,12 +308,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   cardTitle: {
-    color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
   },
   cardSubtitle: {
-    color: '#64748B',
     fontSize: 14,
     marginTop: 4,
   },
@@ -265,24 +324,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  statusExceeded: {
-    backgroundColor: '#DBEAFE',
-  },
-  statusExceededText: {
-    color: '#1D4ED8',
-  },
-  statusCompleted: {
-    backgroundColor: '#DCFCE7',
-  },
-  statusCompletedText: {
-    color: '#15803D',
-  },
-  statusProgress: {
-    backgroundColor: '#FEF3C7',
-  },
-  statusProgressText: {
-    color: '#B45309',
-  },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -290,29 +331,25 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   metaChip: {
-    backgroundColor: '#F1F5F9',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
+    borderWidth: 1,
   },
   metaChipText: {
-    color: '#334155',
     fontSize: 12,
     fontWeight: '600',
   },
   goalText: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
     marginTop: 14,
   },
   progressText: {
-    color: '#475569',
     fontSize: 14,
     marginTop: 6,
   },
   progressTrack: {
-    backgroundColor: '#E2E8F0',
     borderRadius: 999,
     height: 10,
     marginTop: 12,
@@ -332,12 +369,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B',
   },
   detailText: {
-    color: '#475569',
     fontSize: 14,
     marginTop: 10,
   },
   tapText: {
-    color: '#94A3B8',
     fontSize: 12,
     fontWeight: '600',
     marginTop: 10,

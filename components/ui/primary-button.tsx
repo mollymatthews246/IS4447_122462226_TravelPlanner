@@ -1,3 +1,4 @@
+import { useTheme } from '@/hooks/useTheme';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 type Props = {
@@ -13,6 +14,27 @@ export default function PrimaryButton({
   compact = false,
   variant = 'primary',
 }: Props) {
+  const { theme, isDark } = useTheme();
+
+  const backgroundColor =
+    variant === 'primary'
+      ? theme.primary
+      : variant === 'danger'
+        ? '#B91C1C'
+        : theme.card;
+
+  const borderColor =
+    variant === 'primary'
+      ? theme.primary
+      : variant === 'danger'
+        ? '#991B1B'
+        : theme.border;
+
+  const textColor =
+    variant === 'primary' || variant === 'danger'
+      ? '#FFFFFF'
+      : theme.text;
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -20,17 +42,20 @@ export default function PrimaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        variant === 'secondary' ? styles.secondary : null,
-        variant === 'danger' ? styles.danger : null,
+        {
+          backgroundColor,
+          borderColor,
+          borderWidth: variant === 'secondary' || variant === 'danger' ? 1 : 0,
+        },
         compact ? styles.compact : null,
         pressed ? styles.pressed : null,
+        isDark && variant === 'secondary' ? styles.secondaryDark : null,
       ]}
     >
       <Text
         style={[
           styles.label,
-          variant === 'secondary' ? styles.secondaryLabel : null,
-          variant === 'danger' ? styles.dangerLabel : null,
+          { color: textColor },
           compact ? styles.compactLabel : null,
         ]}
       >
@@ -43,20 +68,9 @@ export default function PrimaryButton({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: '#1A8A7D',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 11,
-  },
-  secondary: {
-    backgroundColor: '#F8F9FA',
-    borderColor: '#D1D5DB',
-    borderWidth: 1,
-  },
-  danger: {
-    backgroundColor: '#B91C1C',
-    borderColor: '#991B1B',
-    borderWidth: 1,
   },
   compact: {
     alignSelf: 'flex-start',
@@ -68,17 +82,13 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   label: {
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },
-  secondaryLabel: {
-    color: '#2D3436',
-  },
-  dangerLabel: {
-    color: '#FFFFFF',
-  },
   compactLabel: {
     fontSize: 13,
+  },
+  secondaryDark: {
+    opacity: 0.95,
   },
 });

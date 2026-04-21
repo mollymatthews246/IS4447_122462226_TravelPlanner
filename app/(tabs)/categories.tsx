@@ -1,5 +1,6 @@
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
+import { useTheme } from '@/hooks/useTheme';
 import { useRouter } from 'expo-router';
 import { useContext } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -29,13 +30,14 @@ function displayCategoryIcon(icon: string) {
 export default function CategoriesScreen() {
   const router = useRouter();
   const context = useContext(TripPlannerContext);
+  const { theme } = useTheme();
 
   if (!context) return null;
 
   const { categories } = context;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScreenHeader
         title="Categories"
         subtitle={`${categories.length} activity categories`}
@@ -51,12 +53,12 @@ export default function CategoriesScreen() {
         showsVerticalScrollIndicator={false}
       >
         {categories.length === 0 ? (
-          <Text style={styles.emptyText}>No categories yet.</Text>
+          <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No categories yet.</Text>
         ) : (
           categories.map((category) => (
             <Pressable
               key={category.id}
-              style={styles.card}
+              style={[styles.card, { backgroundColor: theme.card }]}
               accessibilityRole="button"
               accessibilityLabel={`Edit category ${category.name}`}
               onPress={() => router.push(`/categories/${category.id}/edit`)}
@@ -69,8 +71,8 @@ export default function CategoriesScreen() {
               />
 
               <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>{category.name}</Text>
-                <Text style={styles.cardSubtitle}>Tap to edit</Text>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>{category.name}</Text>
+                <Text style={[styles.cardSubtitle, { color: theme.secondaryText }]}>Tap to edit</Text>
               </View>
 
               <Text style={styles.iconText}>
@@ -86,7 +88,6 @@ export default function CategoriesScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 10,
@@ -96,14 +97,12 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   emptyText: {
-    color: '#475569',
     fontSize: 16,
     paddingTop: 8,
     textAlign: 'center',
   },
   card: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     flexDirection: 'row',
     marginBottom: 12,
@@ -119,12 +118,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    color: '#0F172A',
     fontSize: 17,
     fontWeight: '700',
   },
   cardSubtitle: {
-    color: '#64748B',
     fontSize: 13,
     marginTop: 3,
   },
