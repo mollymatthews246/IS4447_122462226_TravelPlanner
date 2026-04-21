@@ -1,12 +1,16 @@
 import { Colors } from '@/constants/theme';
 import { db } from '@/db/client';
-import { trips as tripsTable } from '@/db/schema';
+import { activities as activitiesTable, trips as tripsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Activity, Trip, TripPlannerContext } from '../../context/trip-planner-context';
+import {
+  Activity,
+  Trip,
+  TripPlannerContext,
+} from '../../context/trip-planner-context';
 
 function formatShortDate(dateString: string): string {
   const [year, month, day] = dateString.split('-').map(Number);
@@ -39,7 +43,7 @@ export default function TripDetail() {
 
   if (!context) return null;
 
-  const { trips, setTrips, activities, categories } = context;
+  const { trips, setTrips, activities, setActivities, categories } = context;
   const trip = trips.find((t: Trip) => t.id === Number(id));
 
   if (!trip) return null;
@@ -48,9 +52,13 @@ export default function TripDetail() {
     (activity: Activity) => activity.tripId === trip.id
   );
 
-  const confirmedCount = tripActivities.filter(
-    (a) => a.status === 'confirmed'
+  const completedCount = tripActivities.filter(
+    (a) => a.status === 'completed'
   ).length;
+
+  const completedHours = tripActivities
+    .filter((a) => a.status === 'completed')
+    .reduce((sum, a) => sum + (a.duration ?? 0), 0);
 
   const plannedHours = tripActivities
     .filter((a) => a.status === 'planned')
@@ -63,13 +71,38 @@ export default function TripDetail() {
     router.back();
   };
 
+  const markActivityComplete = async (activityId: number) => {
+    await db
+      .update(activitiesTable)
+      .set({ status: 'completed' })
+      .where(eq(activitiesTable.id, activityId));
+
+    const rows = await db.select().from(activitiesTable);
+    setActivities(rows);
+  };
+
+  const confirmMarkComplete = (activityId: number, title: string) => {
+    Alert.alert(
+      'Mark activity complete',
+      `Mark "${title}" as completed?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Complete',
+          onPress: () => {
+            void markActivityComplete(activityId);
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top Bar */}
         <View style={styles.topBar}>
           <Pressable onPress={() => router.back()} style={styles.topBarButton}>
             <Text style={styles.topBarIcon}>‹</Text>
@@ -87,7 +120,6 @@ export default function TripDetail() {
           </View>
         </View>
 
-        {/* Destination Badge */}
         <View style={styles.destinationBadge}>
           <Text style={styles.destinationPin}>📍</Text>
           <Text style={styles.destinationText}>
@@ -95,17 +127,14 @@ export default function TripDetail() {
           </Text>
         </View>
 
-        {/* Trip Title */}
         <Text style={styles.tripTitle}>{trip.title}</Text>
 
-        {/* Dates & Duration */}
         <View style={styles.dateRow}>
           <Text style={styles.dateIcon}>📅</Text>
           <View>
             <Text style={styles.dateLabel}>DATES</Text>
             <Text style={styles.dateValue}>
-              {formatShortDate(trip.startDate)} –{' '}
-              {formatShortDate(trip.endDate)}
+              {formatShortDate(trip.startDate)} – {formatShortDate(trip.endDate)}
             </Text>
           </View>
           <View style={styles.dateDivider} />
@@ -117,7 +146,6 @@ export default function TripDetail() {
           </View>
         </View>
 
-        {/* Notes */}
         {trip.notes ? (
           <View style={styles.notesCard}>
             <Text style={styles.notesQuote}>"</Text>
@@ -125,15 +153,18 @@ export default function TripDetail() {
           </View>
         ) : null}
 
-        {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{tripActivities.length}</Text>
             <Text style={styles.statLabel}>ACTIVITIES</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{confirmedCount}</Text>
-            <Text style={styles.statLabel}>CONFIRMED</Text>
+            <Text style={styles.statNumber}>{completedCount}</Text>
+            <Text style={styles.statLabel}>COMPLETED</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{completedHours}h</Text>
+            <Text style={styles.statLabel}>DONE</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{plannedHours}h</Text>
@@ -141,7 +172,6 @@ export default function TripDetail() {
           </View>
         </View>
 
-        {/* Activities Section */}
         <View style={styles.activitiesHeader}>
           <Text style={styles.activitiesTitle}>Activities</Text>
           <Pressable
@@ -164,7 +194,7 @@ export default function TripDetail() {
               (cat) => cat.id === activity.categoryId
             );
             const borderColor = category?.color ?? '#CBD5E1';
-            const isConfirmed = activity.status === 'confirmed';
+            const isCompleted = activity.status === 'completed';
 
             return (
               <Pressable
@@ -181,7 +211,7 @@ export default function TripDetail() {
                     style={[
                       styles.statusBadge,
                       {
-                        backgroundColor: isConfirmed ? '#ECFDF5' : '#FFF7ED',
+                        backgroundColor: isCompleted ? '#ECFDF5' : '#FFF7ED',
                       },
                     ]}
                   >
@@ -189,9 +219,7 @@ export default function TripDetail() {
                       style={[
                         styles.statusDot,
                         {
-                          backgroundColor: isConfirmed
-                            ? '#22C55E'
-                            : '#F97316',
+                          backgroundColor: isCompleted ? '#22C55E' : '#F97316',
                         },
                       ]}
                     />
@@ -199,12 +227,11 @@ export default function TripDetail() {
                       style={[
                         styles.statusText,
                         {
-                          color: isConfirmed ? '#16A34A' : '#EA580C',
+                          color: isCompleted ? '#16A34A' : '#EA580C',
                         },
                       ]}
                     >
-                      {activity.status.charAt(0).toUpperCase() +
-                        activity.status.slice(1)}
+                      {isCompleted ? 'Completed' : 'Planned'}
                     </Text>
                   </View>
                 </View>
@@ -213,9 +240,7 @@ export default function TripDetail() {
                   <Text style={styles.metaText}>
                     📅 {formatActivityDate(activity.activityDate)}
                   </Text>
-                  <Text style={styles.metaText}>
-                    ⏱ {activity.duration}h
-                  </Text>
+                  <Text style={styles.metaText}>⏱ {activity.duration}h</Text>
                   {category ? (
                     <Text style={styles.metaText}>
                       {category.icon} {category.name}
@@ -230,12 +255,29 @@ export default function TripDetail() {
                     </Text>
                   </View>
                 ) : null}
+
+                {!isCompleted ? (
+                  <View style={styles.actionRow}>
+                    <Pressable
+                      style={styles.completeButton}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        confirmMarkComplete(activity.id, activity.title);
+                      }}
+                    >
+                      <Text style={styles.completeButtonText}>Mark Complete</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View style={styles.completedRow}>
+                    <Text style={styles.completedText}>Completed ✅</Text>
+                  </View>
+                )}
               </Pressable>
             );
           })
         )}
 
-        {/* Bottom spacing */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
@@ -251,8 +293,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
-
-  // Top Bar
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -279,8 +319,6 @@ const styles = StyleSheet.create({
   topBarIcon: {
     fontSize: 18,
   },
-
-  // Destination Badge
   destinationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -301,16 +339,12 @@ const styles = StyleSheet.create({
     color: '#C2410C',
     letterSpacing: 0.5,
   },
-
-  // Trip Title
   tripTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: Colors.light.text,
     marginBottom: 14,
   },
-
-  // Dates
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -338,8 +372,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
     marginHorizontal: 16,
   },
-
-  // Notes
   notesCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -364,12 +396,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontStyle: 'italic',
   },
-
-  // Stats
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 24,
+    gap: 8,
   },
   statCard: {
     flex: 1,
@@ -377,7 +408,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    marginHorizontal: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -396,8 +426,6 @@ const styles = StyleSheet.create({
     color: Colors.light.icon,
     letterSpacing: 0.5,
   },
-
-  // Activities Header
   activitiesHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -420,8 +448,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-
-  // Activity Cards
   activityCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -487,8 +513,29 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 18,
   },
-
-  // Empty state
+  actionRow: {
+    marginTop: 10,
+    alignItems: 'flex-start',
+  },
+  completeButton: {
+    backgroundColor: '#16A34A',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  completeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  completedRow: {
+    marginTop: 10,
+  },
+  completedText: {
+    color: '#16A34A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   emptyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -507,7 +554,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-
   bottomSpacer: {
     height: 20,
   },

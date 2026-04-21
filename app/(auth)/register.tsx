@@ -1,5 +1,5 @@
 import { db } from '@/db/client';
-import { users as usersTable } from '@/db/schema';
+import { categories as categoriesTable, users as usersTable } from '@/db/schema';
 import { hashPassword } from '@/utils/hashPassword';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -53,6 +53,33 @@ export default function Register() {
         .returning();
 
       const newUser = insertedUser[0];
+
+      await db.insert(categoriesTable).values([
+        {
+          userId: newUser.id,
+          name: 'Sightseeing',
+          color: '#3B82F6',
+          icon: '📷',
+        },
+        {
+          userId: newUser.id,
+          name: 'Food',
+          color: '#F97316',
+          icon: '🍽️',
+        },
+        {
+          userId: newUser.id,
+          name: 'Outdoor',
+          color: '#22C55E',
+          icon: '🌳',
+        },
+        {
+          userId: newUser.id,
+          name: 'Relaxation',
+          color: '#A855F7',
+          icon: '☕',
+        },
+      ]);
 
       await AsyncStorage.setItem('loggedInUserId', String(newUser.id));
       context?.setCurrentUser(newUser);

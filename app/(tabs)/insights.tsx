@@ -10,11 +10,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TripPlannerContext } from '../../context/trip-planner-context';
 
-function formatIrishDate(dateString: string) {
-  const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
-}
-
 export default function InsightsScreen() {
   const context = useContext(TripPlannerContext);
 
@@ -22,27 +17,44 @@ export default function InsightsScreen() {
 
   const { activities, categories, trips } = context;
 
-  const totalActivities = activities.length;
+  const completedActivitiesList = activities.filter(
+    (activity) => activity.status === 'completed'
+  );
+  const plannedActivitiesList = activities.filter(
+    (activity) => activity.status === 'planned'
+  );
 
-  const totalHours = activities.reduce(
+  const totalActivities = activities.length;
+  const completedActivities = completedActivitiesList.length;
+  const plannedActivities = plannedActivitiesList.length;
+
+  const completedHours = completedActivitiesList.reduce(
     (total, activity) => total + activity.duration,
     0
   );
 
-  const completedActivities = activities.filter(
-    (activity) => activity.status === 'completed'
-  ).length;
+  const plannedHours = plannedActivitiesList.reduce(
+    (total, activity) => total + activity.duration,
+    0
+  );
 
-  const plannedActivities = activities.filter(
-    (activity) => activity.status === 'planned'
-  ).length;
+  const totalHours = completedHours + plannedHours;
 
   const categoryTotals = categories.map((category) => {
-    const categoryActivities = activities.filter(
+    const completedCategoryActivities = completedActivitiesList.filter(
       (activity) => activity.categoryId === category.id
     );
 
-    const hours = categoryActivities.reduce(
+    const plannedCategoryActivities = plannedActivitiesList.filter(
+      (activity) => activity.categoryId === category.id
+    );
+
+    const completed = completedCategoryActivities.reduce(
+      (total, activity) => total + activity.duration,
+      0
+    );
+
+    const planned = plannedCategoryActivities.reduce(
       (total, activity) => total + activity.duration,
       0
     );
@@ -51,41 +63,32 @@ export default function InsightsScreen() {
       id: category.id,
       name: category.name,
       color: category.color,
-      hours,
-      count: categoryActivities.length,
+      completed,
+      planned,
+      total: completed + planned,
     };
   });
 
   const maxCategoryHours = Math.max(
-    ...categoryTotals.map((category) => category.hours),
-    1
-  );
-
-  const dailyTotals = activities.reduce<Record<string, number>>(
-    (totals, activity) => {
-      totals[activity.activityDate] =
-        (totals[activity.activityDate] ?? 0) + activity.duration;
-
-      return totals;
-    },
-    {}
-  );
-
-  const dailyEntries = Object.entries(dailyTotals).sort(
-    ([dateA], [dateB]) => dateA.localeCompare(dateB)
-  );
-
-  const maxDailyHours = Math.max(
-    ...dailyEntries.map(([, hours]) => hours),
+    ...categoryTotals.map((category) => category.completed),
     1
   );
 
   const tripTotals = trips.map((trip) => {
-    const tripActivities = activities.filter(
+    const completedTripActivities = completedActivitiesList.filter(
       (activity) => activity.tripId === trip.id
     );
 
-    const hours = tripActivities.reduce(
+    const plannedTripActivities = plannedActivitiesList.filter(
+      (activity) => activity.tripId === trip.id
+    );
+
+    const completed = completedTripActivities.reduce(
+      (total, activity) => total + activity.duration,
+      0
+    );
+
+    const planned = plannedTripActivities.reduce(
       (total, activity) => total + activity.duration,
       0
     );
@@ -94,21 +97,27 @@ export default function InsightsScreen() {
       id: trip.id,
       title: trip.title,
       destination: trip.destination,
-      hours,
-      count: tripActivities.length,
+      completed,
+      planned,
+      total: completed + planned,
+      activityCount:
+        completedTripActivities.length + plannedTripActivities.length,
     };
   });
 
   const maxTripHours = Math.max(
-    ...tripTotals.map((trip) => trip.hours),
+    ...tripTotals.map((trip) => trip.completed),
     1
   );
+
+  const completionPercentage =
+    totalHours === 0 ? 0 : Math.round((completedHours / totalHours) * 100);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScreenHeader
         title="Insights"
-        subtitle="Understand your trip activity balance"
+        subtitle="See how your plans and completed activities compare"
       />
 
       <ScrollView
@@ -127,29 +136,59 @@ export default function InsightsScreen() {
           </View>
 
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{completedActivities}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statValue}>{completedHours}</Text>
+            <Text style={styles.statLabel}>Completed Hours</Text>
           </View>
 
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{plannedActivities}</Text>
-            <Text style={styles.statLabel}>Planned</Text>
+            <Text style={styles.statValue}>{plannedHours}</Text>
+            <Text style={styles.statLabel}>Planned Hours</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Hours by Category</Text>
+          <Text style={styles.sectionTitle}>Activity Progress</Text>
 
-          {categoryTotals.every((category) => category.hours === 0) ? (
+          <View style={styles.progressSummaryRow}>
+            <View style={styles.progressSummaryCard}>
+              <Text style={styles.progressSummaryValue}>
+                {completedActivities}
+              </Text>
+              <Text style={styles.progressSummaryLabel}>Completed</Text>
+            </View>
+
+            <View style={styles.progressSummaryCard}>
+              <Text style={styles.progressSummaryValue}>{plannedActivities}</Text>
+              <Text style={styles.progressSummaryLabel}>Planned</Text>
+            </View>
+
+            <View style={styles.progressSummaryCard}>
+              <Text style={styles.progressSummaryValue}>
+                {completionPercentage}%
+              </Text>
+              <Text style={styles.progressSummaryLabel}>Completion</Text>
+            </View>
+          </View>
+
+          <Text style={styles.progressBreakdownText}>
+            Completed hours count toward your target progress. Planned hours show
+            what is still scheduled.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Completed Hours by Category</Text>
+
+          {categoryTotals.every((category) => category.completed === 0) ? (
             <Text style={styles.emptyText}>
-              No category activity data available yet.
+              No completed category data available yet.
             </Text>
           ) : (
             categoryTotals
-              .filter((category) => category.hours > 0)
+              .filter((category) => category.completed > 0)
               .map((category) => {
                 const width = `${Math.max(
-                  (category.hours / maxCategoryHours) * 100,
+                  (category.completed / maxCategoryHours) * 100,
                   8
                 )}%` as DimensionValue;
 
@@ -158,9 +197,15 @@ export default function InsightsScreen() {
                     <View style={styles.chartHeader}>
                       <Text style={styles.chartLabel}>{category.name}</Text>
                       <Text style={styles.chartValue}>
-                        {category.hours} hrs
+                        {category.completed} hrs
                       </Text>
                     </View>
+
+                    <Text style={styles.secondaryLine}>
+                      {category.planned > 0
+                        ? `${category.planned} planned hrs still upcoming`
+                        : 'No planned hours remaining'}
+                    </Text>
 
                     <View style={styles.barTrack}>
                       <View
@@ -180,50 +225,18 @@ export default function InsightsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Daily Activity Hours</Text>
+          <Text style={styles.sectionTitle}>Trip Progress</Text>
 
-          {dailyEntries.length === 0 ? (
-            <Text style={styles.emptyText}>No activity data available yet.</Text>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.calendarChart}
-            >
-              {dailyEntries.map(([date, hours]) => {
-                const height = Math.max((hours / maxDailyHours) * 120, 12);
-
-                return (
-                  <View key={date} style={styles.calendarBarItem}>
-                    <Text style={styles.calendarValue}>{hours}</Text>
-
-                    <View style={styles.calendarBarTrack}>
-                      <View style={[styles.calendarBarFill, { height }]} />
-                    </View>
-
-                    <Text style={styles.calendarLabel}>
-                      {formatIrishDate(date).slice(0, 5)}
-                    </Text>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Hours by Trip</Text>
-
-          {tripTotals.every((trip) => trip.hours === 0) ? (
+          {tripTotals.every((trip) => trip.total === 0) ? (
             <Text style={styles.emptyText}>
               No trip activity data available yet.
             </Text>
           ) : (
             tripTotals
-              .filter((trip) => trip.hours > 0)
+              .filter((trip) => trip.total > 0)
               .map((trip) => {
                 const width = `${Math.max(
-                  (trip.hours / maxTripHours) * 100,
+                  (trip.completed / maxTripHours) * 100,
                   8
                 )}%` as DimensionValue;
 
@@ -231,11 +244,14 @@ export default function InsightsScreen() {
                   <View key={trip.id} style={styles.chartRow}>
                     <View style={styles.chartHeader}>
                       <Text style={styles.chartLabel}>{trip.title}</Text>
-                      <Text style={styles.chartValue}>{trip.hours} hrs</Text>
+                      <Text style={styles.chartValue}>
+                        {trip.completed} hrs done
+                      </Text>
                     </View>
 
                     <Text style={styles.tripDestination}>
-                      {trip.destination} • {trip.count} activities
+                      {trip.destination} • {trip.activityCount} activities •{' '}
+                      {trip.planned} planned hrs
                     </Text>
 
                     <View style={styles.barTrack}>
@@ -244,6 +260,24 @@ export default function InsightsScreen() {
                   </View>
                 );
               })
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Destination List</Text>
+
+          {trips.length === 0 ? (
+            <Text style={styles.emptyText}>No trips added yet.</Text>
+          ) : (
+            trips.map((trip) => (
+              <View key={trip.id} style={styles.destinationRow}>
+                <Text style={styles.destinationPin}>📍</Text>
+                <View style={styles.destinationTextBlock}>
+                  <Text style={styles.destinationTitle}>{trip.destination}</Text>
+                  <Text style={styles.destinationSubtitle}>{trip.title}</Text>
+                </View>
+              </View>
+            ))
           )}
         </View>
       </ScrollView>
@@ -301,8 +335,36 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 14,
   },
+  progressSummaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  progressSummaryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+  },
+  progressSummaryValue: {
+    color: '#0F172A',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  progressSummaryLabel: {
+    color: '#64748B',
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  progressBreakdownText: {
+    color: '#475569',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 12,
+  },
   chartRow: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   chartHeader: {
     flexDirection: 'row',
@@ -320,6 +382,11 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 14,
   },
+  secondaryLine: {
+    color: '#64748B',
+    fontSize: 12,
+    marginBottom: 6,
+  },
   tripDestination: {
     color: '#64748B',
     fontSize: 12,
@@ -336,41 +403,26 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     height: '100%',
   },
-  calendarChart: {
-    alignItems: 'flex-end',
+  destinationRow: {
+    alignItems: 'center',
     flexDirection: 'row',
-    gap: 14,
-    minHeight: 170,
-    paddingHorizontal: 4,
-    paddingTop: 12,
+    marginBottom: 12,
   },
-  calendarBarItem: {
-    alignItems: 'center',
-    width: 46,
+  destinationPin: {
+    fontSize: 18,
+    marginRight: 10,
   },
-  calendarValue: {
-    color: '#334155',
-    fontSize: 12,
+  destinationTextBlock: {
+    flex: 1,
+  },
+  destinationTitle: {
+    color: '#0F172A',
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 6,
   },
-  calendarBarTrack: {
-    alignItems: 'center',
-    backgroundColor: '#E2E8F0',
-    borderRadius: 999,
-    height: 120,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-    width: 18,
-  },
-  calendarBarFill: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 999,
-    width: '100%',
-  },
-  calendarLabel: {
+  destinationSubtitle: {
     color: '#64748B',
-    fontSize: 11,
-    marginTop: 6,
+    fontSize: 13,
+    marginTop: 2,
   },
 });

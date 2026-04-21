@@ -3,6 +3,7 @@ import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
 import { db } from '@/db/client';
 import { categories as categoriesTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -52,7 +53,7 @@ export default function AddCategory() {
 
   if (!context) return null;
 
-  const { setCategories } = context;
+  const { currentUser, setCategories } = context;
 
   const saveCategory = async () => {
     if (!name.trim() || !color.trim() || !icon.trim()) {
@@ -60,14 +61,25 @@ export default function AddCategory() {
       return;
     }
 
+    if (!currentUser) {
+      setError('You must be logged in to create a category.');
+      return;
+    }
+
+    setError('');
+
     await db.insert(categoriesTable).values({
-      userId: 1,
+      userId: currentUser.id,
       name: name.trim(),
       color,
       icon,
     });
 
-    const rows = await db.select().from(categoriesTable);
+    const rows = await db
+      .select()
+      .from(categoriesTable)
+      .where(eq(categoriesTable.userId, currentUser.id));
+
     setCategories(rows);
 
     router.back();
@@ -82,7 +94,11 @@ export default function AddCategory() {
         />
 
         <View style={styles.form}>
-          <FormField label="Category Name" value={name} onChangeText={setName} />
+          <FormField
+            label="Category Name"
+            value={name}
+            onChangeText={setName}
+          />
 
           <Text style={styles.label}>Choose Colour</Text>
           <View style={styles.optionGrid}>

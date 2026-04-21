@@ -1,4 +1,7 @@
 import ScreenHeader from '@/components/ui/screen-header';
+import { db } from '@/db/client';
+import { activities as activitiesTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -12,13 +15,21 @@ function formatIrishDate(dateString: string) {
   return `${day}/${month}/${year}`;
 }
 
+function parseDateOnly(dateString: string) {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 function getDatesBetween(startDate: string, endDate: string) {
   const dates: string[] = [];
-  const currentDate = new Date(startDate);
-  const finalDate = new Date(endDate);
+  const currentDate = parseDateOnly(startDate);
+  const finalDate = parseDateOnly(endDate);
 
   while (currentDate <= finalDate) {
-    dates.push(currentDate.toISOString().split('T')[0]);
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
@@ -26,19 +37,22 @@ function getDatesBetween(startDate: string, endDate: string) {
 }
 
 function getDayName(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-IE', {
+  return parseDateOnly(dateString).toLocaleDateString('en-IE', {
     weekday: 'short',
   });
 }
 
 function getMonthName(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-IE', {
+  return parseDateOnly(dateString).toLocaleDateString('en-IE', {
     month: 'short',
   });
 }
 
 function toDateOnly(date: Date) {
-  return date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function getStartOfWeek(date: Date) {
@@ -78,6 +92,28 @@ function getEmptyMessage(viewMode: CalendarViewMode) {
   return 'No trips planned this month.';
 }
 
+function getRangeLabel(
+  viewMode: CalendarViewMode,
+  rangeStart: string,
+  rangeEnd: string
+) {
+  if (viewMode === 'daily') {
+    return `Today • ${formatIrishDate(rangeStart)}`;
+  }
+
+  if (viewMode === 'weekly') {
+    return `This Week • ${formatIrishDate(rangeStart)} - ${formatIrishDate(
+      rangeEnd
+    )}`;
+  }
+
+  const monthDate = parseDateOnly(rangeStart);
+  return monthDate.toLocaleDateString('en-IE', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 export default function CalendarScreen() {
   const router = useRouter();
   const context = useContext(TripPlannerContext);
@@ -85,7 +121,7 @@ export default function CalendarScreen() {
 
   if (!context) return null;
 
-  const { trips, activities } = context;
+  const { currentUser, trips, activities, setActivities } = context;
   const today = new Date();
 
   const rangeStart =
@@ -105,6 +141,28 @@ export default function CalendarScreen() {
   const filteredTrips = trips.filter((trip) =>
     tripOverlapsDateRange(trip, rangeStart, rangeEnd)
   );
+
+  const refreshUserActivities = async () => {
+    if (!currentUser) return;
+
+    const userTripIds = trips.map((trip) => trip.id);
+    const allActivities = await db.select().from(activitiesTable);
+
+    const filteredActivities = allActivities.filter((activity) =>
+      userTripIds.includes(activity.tripId)
+    );
+
+    setActivities(filteredActivities);
+  };
+
+  const markActivityComplete = async (activityId: number) => {
+    await db
+      .update(activitiesTable)
+      .set({ status: 'completed' })
+      .where(eq(activitiesTable.id, activityId));
+
+    await refreshUserActivities();
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -139,7 +197,7 @@ export default function CalendarScreen() {
       </View>
 
       <Text style={styles.rangeText}>
-        {formatIrishDate(rangeStart)} - {formatIrishDate(rangeEnd)}
+        {getRangeLabel(viewMode, rangeStart, rangeEnd)}
       </Text>
 
       <ScrollView
@@ -225,11 +283,16 @@ export default function CalendarScreen() {
 
                 <View style={styles.agendaList}>
                   {tripDates.map((date) => {
-                    const dayActivities = activities.filter(
-                      (activity) =>
-                        activity.tripId === trip.id &&
-                        activity.activityDate === date
-                    );
+                    const dayActivities = activities
+                      .filter(
+                        (activity) =>
+                          activity.tripId === trip.id &&
+                          activity.activityDate === date
+                      )
+                      .sort((a, b) => {
+                        if (a.status === b.status) return 0;
+                        return a.status === 'planned' ? -1 : 1;
+                      });
 
                     return (
                       <View key={date} style={styles.agendaRow}>
@@ -262,22 +325,65 @@ export default function CalendarScreen() {
                               </Text>
                             </Pressable>
                           ) : (
-                            dayActivities.map((activity) => (
-                              <View
-                                key={activity.id}
-                                style={styles.activityPill}
-                              >
-                                <View style={styles.activityDot} />
-                                <View style={styles.activityTextBlock}>
-                                  <Text style={styles.activityTitle}>
-                                    {activity.title}
-                                  </Text>
-                                  <Text style={styles.activityMeta}>
-                                    {activity.duration} hrs • {activity.status}
-                                  </Text>
-                                </View>
-                              </View>
-                            ))
+                            dayActivities.map((activity) => {
+                              const isCompleted = activity.status === 'completed';
+
+                              return (
+                                <Pressable
+                                  key={activity.id}
+                                  style={[
+                                    styles.activityPill,
+                                    isCompleted
+                                      ? styles.activityPillCompleted
+                                      : styles.activityPillPlanned,
+                                  ]}
+                                  onPress={() =>
+                                    router.push(`/activities/${activity.id}/edit`)
+                                  }
+                                >
+                                  <View
+                                    style={[
+                                      styles.activityDot,
+                                      {
+                                        backgroundColor: isCompleted
+                                          ? '#22C55E'
+                                          : '#F97316',
+                                      },
+                                    ]}
+                                  />
+                                  <View style={styles.activityTextBlock}>
+                                    <Text style={styles.activityTitle}>
+                                      {activity.title}
+                                    </Text>
+                                    <Text style={styles.activityMeta}>
+                                      {activity.duration} hrs • {activity.status}
+                                    </Text>
+                                  </View>
+
+                                  {!isCompleted ? (
+                                    <Pressable
+                                      accessibilityRole="button"
+                                      accessibilityLabel={`Mark ${activity.title} complete`}
+                                      onPress={(event) => {
+                                        event.stopPropagation();
+                                        void markActivityComplete(activity.id);
+                                      }}
+                                      style={styles.completeButton}
+                                    >
+                                      <Text style={styles.completeButtonText}>
+                                        Complete
+                                      </Text>
+                                    </Pressable>
+                                  ) : (
+                                    <View style={styles.completedBadge}>
+                                      <Text style={styles.completedBadgeText}>
+                                        Done
+                                      </Text>
+                                    </View>
+                                  )}
+                                </Pressable>
+                              );
+                            })
                           )}
                         </View>
                       </View>
@@ -461,15 +567,19 @@ const styles = StyleSheet.create({
   },
   activityPill: {
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
     borderRadius: 14,
     flexDirection: 'row',
     gap: 10,
     marginBottom: 8,
     padding: 12,
   },
+  activityPillPlanned: {
+    backgroundColor: '#FFF7ED',
+  },
+  activityPillCompleted: {
+    backgroundColor: '#ECFDF5',
+  },
   activityDot: {
-    backgroundColor: '#1A8A7D',
     borderRadius: 999,
     height: 10,
     width: 10,
@@ -487,5 +597,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 3,
     textTransform: 'capitalize',
+  },
+  completeButton: {
+    backgroundColor: '#1A8A7D',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  completeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  completedBadge: {
+    backgroundColor: '#DCFCE7',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  completedBadgeText: {
+    color: '#15803D',
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

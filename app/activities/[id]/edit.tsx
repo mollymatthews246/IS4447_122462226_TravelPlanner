@@ -2,13 +2,40 @@ import FormField from '@/components/ui/form-field';
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
 import { db } from '@/db/client';
-import { activities as activitiesTable } from '@/db/schema';
+import {
+  activities as activitiesTable,
+  trips as tripsTable,
+} from '@/db/schema';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { eq } from 'drizzle-orm';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useContext, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Activity, TripPlannerContext } from '../../_layout';
+import {
+  Activity,
+  TripPlannerContext,
+} from '../../../context/trip-planner-context';
+
+function formatIrishDate(dateString: string) {
+  if (!dateString) return 'Select date';
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function formatDateForStorage(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export default function EditActivity() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,12 +48,15 @@ export default function EditActivity() {
 
   const [title, setTitle] = useState('');
   const [activityDate, setActivityDate] = useState('');
-  const [duration, setDuration] = useState('');
-  const [count, setCount] = useState('1');
+  const [duration, setDuration] = useState('1');
   const [notes, setNotes] = useState('');
-  const [status, setStatus] = useState('planned');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [status, setStatus] = useState<'planned' | 'completed'>('planned');
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
+    null
+  );
   const [error, setError] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (!activity) return;
@@ -34,80 +64,136 @@ export default function EditActivity() {
     setTitle(activity.title);
     setActivityDate(activity.activityDate);
     setDuration(String(activity.duration));
-    setCount(String(activity.count));
     setNotes(activity.notes ?? '');
-    setStatus(activity.status);
+    setStatus(activity.status as 'planned' | 'completed');
+    setSelectedTripId(activity.tripId);
     setSelectedCategoryId(activity.categoryId);
   }, [activity]);
 
   if (!context || !activity) return null;
 
-  const { categories, setActivities } = context;
+  const { currentUser, trips, setActivities, categories } = context;
+
+  const selectedTrip = useMemo(
+    () => trips.find((trip) => trip.id === selectedTripId),
+    [trips, selectedTripId]
+  );
+
+  const refreshUserActivities = async () => {
+    if (!currentUser) return;
+
+    const userTrips = await db
+      .select()
+      .from(tripsTable)
+      .where(eq(tripsTable.userId, currentUser.id));
+
+    const userTripIds = userTrips.map((trip) => trip.id);
+    const allActivities = await db.select().from(activitiesTable);
+
+    const filteredActivities = allActivities.filter((item) =>
+      userTripIds.includes(item.tripId)
+    );
+
+    setActivities(filteredActivities);
+  };
 
   const saveChanges = async () => {
-    if (!title.trim() || !activityDate.trim() || !duration.trim() || !selectedCategoryId) {
-      setError('Please fill in the activity title, date, duration and category.');
+    if (!selectedTripId) {
+      setError('Please choose a trip.');
       return;
     }
+
+    if (!title.trim() || !activityDate.trim() || !selectedCategoryId) {
+      setError('Please enter a title, category and date.');
+      return;
+    }
+
+    if (Number(duration) <= 0 || Number.isNaN(Number(duration))) {
+      setError('Please enter a valid number of hours greater than 0.');
+      return;
+    }
+
+    setError('');
 
     await db
       .update(activitiesTable)
       .set({
+        tripId: selectedTripId,
         title: title.trim(),
-        activityDate: activityDate.trim(),
+        activityDate,
         duration: Number(duration),
-        count: Number(count) || 1,
+        count: 1,
         notes: notes.trim(),
         status,
         categoryId: selectedCategoryId,
       })
       .where(eq(activitiesTable.id, Number(id)));
 
-    const rows = await db.select().from(activitiesTable);
-    setActivities(rows);
-
+    await refreshUserActivities();
     router.back();
   };
 
   const deleteActivity = async () => {
     await db.delete(activitiesTable).where(eq(activitiesTable.id, Number(id)));
-
-    const rows = await db.select().from(activitiesTable);
-    setActivities(rows);
-
+    await refreshUserActivities();
     router.back();
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Edit Activity" subtitle={`Update ${activity.title}`} />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          title="Edit Activity"
+          subtitle={`Update ${activity.title}`}
+        />
 
-        <View style={styles.form}>
-          <FormField label="Activity Title" value={title} onChangeText={setTitle} />
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Choose Trip</Text>
+          <View style={styles.optionRow}>
+            {trips.map((trip) => {
+              const isSelected = selectedTripId === trip.id;
+
+              return (
+                <Pressable
+                  key={trip.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select trip ${trip.title}`}
+                  onPress={() => setSelectedTripId(trip.id)}
+                  style={[
+                    styles.optionButton,
+                    isSelected && styles.optionButtonSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSelected && styles.optionTextSelected,
+                    ]}
+                  >
+                    {trip.title}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {selectedTrip ? (
+            <Text style={styles.helperText}>
+              Destination: {selectedTrip.destination}
+            </Text>
+          ) : null}
 
           <FormField
-            label="Date"
-            value={activityDate}
-            onChangeText={setActivityDate}
-            placeholder="YYYY-MM-DD"
+            label="Activity Title"
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g. Eiffel Tower visit"
           />
 
-          <FormField
-            label="Duration"
-            value={duration}
-            onChangeText={setDuration}
-            placeholder="Hours, e.g. 2"
-          />
-
-          <FormField
-            label="Number of Activities"
-            value={count}
-            onChangeText={setCount}
-            placeholder="e.g. 1"
-          />
-
-          <Text style={styles.label}>Category</Text>
+          <Text style={styles.sectionTitle}>Choose Category</Text>
           <View style={styles.optionRow}>
             {categories.map((category) => {
               const isSelected = selectedCategoryId === category.id;
@@ -116,6 +202,7 @@ export default function EditActivity() {
                 <Pressable
                   key={category.id}
                   accessibilityRole="button"
+                  accessibilityLabel={`Select category ${category.name}`}
                   onPress={() => setSelectedCategoryId(category.id)}
                   style={[
                     styles.optionButton,
@@ -135,15 +222,54 @@ export default function EditActivity() {
             })}
           </View>
 
-          <Text style={styles.label}>Status</Text>
+          <Text style={styles.sectionTitle}>Hours</Text>
+          <View style={styles.valueBox}>
+            <Pressable
+              style={styles.stepButton}
+              onPress={() =>
+                setDuration(String(Math.max(1, (Number(duration) || 1) - 1)))
+              }
+            >
+              <Text style={styles.stepButtonText}>−</Text>
+            </Pressable>
+
+            <Text style={styles.valueText}>{duration || '1'} hrs</Text>
+
+            <Pressable
+              style={styles.stepButton}
+              onPress={() => setDuration(String((Number(duration) || 0) + 1))}
+            >
+              <Text style={styles.stepButtonText}>+</Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.sectionTitle}>Date</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Select activity date"
+            onPress={() => setShowDatePicker(true)}
+            style={styles.dateButton}
+          >
+            <Text
+              style={[
+                styles.dateButtonText,
+                !activityDate && styles.datePlaceholder,
+              ]}
+            >
+              {formatIrishDate(activityDate)}
+            </Text>
+          </Pressable>
+
+          <Text style={styles.sectionTitle}>Status</Text>
           <View style={styles.optionRow}>
-            {['planned', 'completed'].map((option) => {
+            {(['planned', 'completed'] as const).map((option) => {
               const isSelected = status === option;
 
               return (
                 <Pressable
                   key={option}
                   accessibilityRole="button"
+                  accessibilityLabel={`Set status to ${option}`}
                   onPress={() => setStatus(option)}
                   style={[
                     styles.optionButton,
@@ -156,28 +282,57 @@ export default function EditActivity() {
                       isSelected && styles.optionTextSelected,
                     ]}
                   >
-                    {option}
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
 
-          <FormField label="Notes" value={notes} onChangeText={setNotes} />
-        </View>
+          <FormField
+            label="Notes"
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Add any extra details"
+          />
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <PrimaryButton label="Save Changes" onPress={saveChanges} />
+          <PrimaryButton label="Save Changes" onPress={saveChanges} />
 
-        <View style={styles.buttonSpacing}>
-          <PrimaryButton label="Delete Activity" variant="secondary" onPress={deleteActivity} />
-        </View>
+          <View style={styles.buttonSpacing}>
+            <PrimaryButton
+              label="Delete Activity"
+              variant="secondary"
+              onPress={deleteActivity}
+            />
+          </View>
 
-        <View style={styles.buttonSpacing}>
-          <PrimaryButton label="Cancel" variant="secondary" onPress={() => router.back()} />
+          <View style={styles.buttonSpacing}>
+            <PrimaryButton
+              label="Cancel"
+              variant="secondary"
+              onPress={() => router.back()}
+            />
+          </View>
         </View>
       </ScrollView>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={activityDate ? new Date(activityDate) : new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(_, selectedDate) => {
+            if (Platform.OS !== 'ios') {
+              setShowDatePicker(false);
+            }
+            if (selectedDate) {
+              setActivityDate(formatDateForStorage(selectedDate));
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -186,34 +341,41 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#F8FAFC',
     flex: 1,
-    padding: 20,
   },
   content: {
+    padding: 20,
     paddingBottom: 24,
   },
-  form: {
-    marginBottom: 6,
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
   },
-  label: {
+  sectionTitle: {
     color: '#0F172A',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  helperText: {
+    color: '#64748B',
+    fontSize: 13,
+    marginBottom: 14,
   },
   optionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 16,
   },
   optionButton: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#94A3B8',
+    borderColor: '#CBD5E1',
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   optionButtonSelected: {
     backgroundColor: '#0F172A',
@@ -222,11 +384,56 @@ const styles = StyleSheet.create({
   optionText: {
     color: '#0F172A',
     fontSize: 14,
-    fontWeight: '500',
-    textTransform: 'capitalize',
+    fontWeight: '600',
   },
   optionTextSelected: {
     color: '#FFFFFF',
+  },
+  valueBox: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#CBD5E1',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+    padding: 10,
+  },
+  stepButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  stepButtonText: {
+    color: '#0F172A',
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 24,
+  },
+  valueText: {
+    color: '#0F172A',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  dateButton: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  dateButtonText: {
+    color: '#0F172A',
+    fontSize: 15,
+  },
+  datePlaceholder: {
+    color: '#94A3B8',
   },
   errorText: {
     color: '#DC2626',

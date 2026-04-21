@@ -4,7 +4,11 @@ import { useRouter } from 'expo-router';
 import { useContext } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Activity, Target, TripPlannerContext } from '../../context/trip-planner-context';
+import {
+  Activity,
+  Target,
+  TripPlannerContext,
+} from '../../context/trip-planner-context';
 
 function formatIrishDate(dateString: string) {
   const [year, month, day] = dateString.split('-');
@@ -17,25 +21,52 @@ function getTargetProgress(target: Target, activities: Activity[]) {
       activity.activityDate >= target.startDate &&
       activity.activityDate <= target.endDate;
 
-    const matchesTrip = !target.tripId || activity.tripId === target.tripId;
+    const matchesTrip = activity.tripId === target.tripId;
+    const matchesCategory = activity.categoryId === target.categoryId;
+    const matchesStatus = activity.status === 'completed';
 
-    const matchesCategory =
-      !target.categoryId || activity.categoryId === target.categoryId;
-
-    return withinDateRange && matchesTrip && matchesCategory;
+    return (
+      withinDateRange &&
+      matchesTrip &&
+      matchesCategory &&
+      matchesStatus
+    );
   });
 
-  if (target.metricType === 'duration') {
-    return matchingActivities.reduce(
-      (total, activity) => total + activity.duration,
-      0
-    );
-  }
-
   return matchingActivities.reduce(
-    (total, activity) => total + activity.count,
+    (total, activity) => total + activity.duration,
     0
   );
+}
+
+function getStatus(progress: number, targetValue: number) {
+  if (progress > targetValue) return 'Exceeded';
+  if (progress === targetValue) return 'Completed';
+  return 'In Progress';
+}
+
+function getStatusStyles(status: string) {
+  if (status === 'Exceeded') {
+    return {
+      badge: styles.statusExceeded,
+      text: styles.statusExceededText,
+      bar: styles.progressExceeded,
+    };
+  }
+
+  if (status === 'Completed') {
+    return {
+      badge: styles.statusCompleted,
+      text: styles.statusCompletedText,
+      bar: styles.progressCompleted,
+    };
+  }
+
+  return {
+    badge: styles.statusProgress,
+    text: styles.statusProgressText,
+    bar: styles.progressInProgress,
+  };
 }
 
 export default function TargetsScreen() {
@@ -48,7 +79,10 @@ export default function TargetsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScreenHeader title="Targets" subtitle={`${targets.length} goals set`} />
+      <ScreenHeader
+        title="Targets"
+        subtitle={`${targets.length} trip goals tracking your holiday progress`}
+      />
 
       <PrimaryButton
         label="Add Target"
@@ -60,9 +94,13 @@ export default function TargetsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {targets.length === 0 ? (
-          <Text style={styles.emptyText}>
-            No targets yet. Add a weekly or monthly goal.
-          </Text>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>No targets yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Set a category hours goal for a trip and track it as you add
+              activities.
+            </Text>
+          </View>
         ) : (
           targets.map((target) => {
             const trip = trips.find((item) => item.id === target.tripId);
@@ -77,48 +115,65 @@ export default function TargetsScreen() {
               100
             );
 
-            const status =
-              progress > target.targetValue
-                ? 'Exceeded'
-                : progress === target.targetValue
-                  ? 'Met'
-                  : 'Unmet';
-
-            const unit =
-              target.metricType === 'duration' ? 'hours' : 'activities';
+            const status = getStatus(progress, target.targetValue);
+            const statusStyles = getStatusStyles(status);
 
             return (
-                <Pressable
-                    key={target.id}
-                    style={styles.card}
-                    accessibilityRole="button"
-                    accessibilityLabel="Edit target"
-                    onPress={() =>
-                        router.push({
-                        pathname: '/targets/[id]/edit',
-                        params: { id: String(target.id) },
-                        })
-                    }
-                >
+              <Pressable
+                key={target.id}
+                style={styles.card}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${category?.name ?? 'target'} target`}
+                onPress={() =>
+                  router.push({
+                    pathname: '/targets/[id]/edit',
+                    params: { id: String(target.id) },
+                  })
+                }
+              >
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>
-                    {category?.name ?? 'All Categories'} Target
-                  </Text>
-                  <Text style={styles.statusBadge}>{status}</Text>
+                  <View style={styles.titleBlock}>
+                    <Text style={styles.cardTitle}>
+                      {category?.name ?? 'Category'}
+                    </Text>
+                    <Text style={styles.cardSubtitle}>
+                      {trip?.title ?? 'Trip'}
+                    </Text>
+                  </View>
+
+                  <View style={[styles.statusBadge, statusStyles.badge]}>
+                    <Text style={[styles.statusText, statusStyles.text]}>
+                      {status}
+                    </Text>
+                  </View>
                 </View>
 
-                <Text style={styles.cardSubtitle}>
-                  {target.type} goal • {trip?.title ?? 'All Trips'}
+                <View style={styles.metaRow}>
+                  <View style={styles.metaChip}>
+                    <Text style={styles.metaChipText}>Hours Goal</Text>
+                  </View>
+
+                  <View style={styles.metaChip}>
+                    <Text style={styles.metaChipText}>
+                      {formatIrishDate(target.startDate)} -{' '}
+                      {formatIrishDate(target.endDate)}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.goalText}>
+                  Goal: {target.targetValue} hours
                 </Text>
 
                 <Text style={styles.progressText}>
-                  Progress: {progress} / {target.targetValue} {unit}
+                  Progress so far: {progress} hours
                 </Text>
 
                 <View style={styles.progressTrack}>
                   <View
                     style={[
                       styles.progressFill,
+                      statusStyles.bar,
                       { width: `${percentage}%` },
                     ]}
                   />
@@ -126,13 +181,10 @@ export default function TargetsScreen() {
 
                 <Text style={styles.detailText}>
                   {remaining > 0
-                    ? `${remaining} ${unit} remaining`
-                    : `Exceeded by ${Math.abs(remaining)} ${unit}`}
-                </Text>
-
-                <Text style={styles.dateText}>
-                  {formatIrishDate(target.startDate)} -{' '}
-                  {formatIrishDate(target.endDate)}
+                    ? `${remaining} hours left to complete this goal`
+                    : remaining === 0
+                      ? 'You reached this goal exactly'
+                      : `You exceeded this goal by ${Math.abs(remaining)} hours`}
                 </Text>
 
                 <Text style={styles.tapText}>Tap to edit</Text>
@@ -156,75 +208,138 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingTop: 14,
   },
-  emptyText: {
-    color: '#475569',
-    fontSize: 16,
-    paddingTop: 8,
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 24,
+  },
+  emptyTitle: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 8,
     textAlign: 'center',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    marginBottom: 12,
-    padding: 14,
+    borderRadius: 18,
+    marginBottom: 14,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   cardHeader: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  titleBlock: {
+    flex: 1,
+    marginRight: 10,
+  },
   cardTitle: {
     color: '#0F172A',
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  statusBadge: {
-    backgroundColor: '#E2E8F0',
-    borderRadius: 999,
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '700',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    fontSize: 18,
+    fontWeight: '800',
   },
   cardSubtitle: {
     color: '#64748B',
     fontSize: 14,
-    marginTop: 5,
-    textTransform: 'capitalize',
+    marginTop: 4,
+  },
+  statusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  statusExceeded: {
+    backgroundColor: '#DBEAFE',
+  },
+  statusExceededText: {
+    color: '#1D4ED8',
+  },
+  statusCompleted: {
+    backgroundColor: '#DCFCE7',
+  },
+  statusCompletedText: {
+    color: '#15803D',
+  },
+  statusProgress: {
+    backgroundColor: '#FEF3C7',
+  },
+  statusProgressText: {
+    color: '#B45309',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14,
+  },
+  metaChip: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  metaChipText: {
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  goalText: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 14,
   },
   progressText: {
-    color: '#334155',
+    color: '#475569',
     fontSize: 14,
-    fontWeight: '600',
-    marginTop: 12,
+    marginTop: 6,
   },
   progressTrack: {
     backgroundColor: '#E2E8F0',
     borderRadius: 999,
     height: 10,
-    marginTop: 8,
+    marginTop: 12,
     overflow: 'hidden',
   },
   progressFill: {
-    backgroundColor: '#22C55E',
+    borderRadius: 999,
     height: '100%',
+  },
+  progressExceeded: {
+    backgroundColor: '#3B82F6',
+  },
+  progressCompleted: {
+    backgroundColor: '#22C55E',
+  },
+  progressInProgress: {
+    backgroundColor: '#F59E0B',
   },
   detailText: {
     color: '#475569',
     fontSize: 14,
-    marginTop: 8,
-  },
-  dateText: {
-    color: '#64748B',
-    fontSize: 13,
-    marginTop: 6,
+    marginTop: 10,
   },
   tapText: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 12,
     fontWeight: '600',
-    marginTop: 8,
+    marginTop: 10,
   },
 });

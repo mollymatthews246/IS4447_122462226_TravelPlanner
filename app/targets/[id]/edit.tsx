@@ -1,14 +1,37 @@
-import FormField from '@/components/ui/form-field';
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
 import { db } from '@/db/client';
 import { targets as targetsTable } from '@/db/schema';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { eq } from 'drizzle-orm';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Target, TripPlannerContext } from '../../../context/trip-planner-context';
+import {
+  Target,
+  TripPlannerContext,
+} from '../../../context/trip-planner-context';
+
+function formatIrishDate(dateString: string) {
+  if (!dateString) return 'Select date';
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function formatDateForStorage(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export default function EditTarget() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,9 +42,7 @@ export default function EditTarget() {
     (item: Target) => item.id === Number(id)
   );
 
-  const [type, setType] = useState('weekly');
-  const [metricType, setMetricType] = useState('duration');
-  const [targetValue, setTargetValue] = useState('');
+  const [targetValue, setTargetValue] = useState('1');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
@@ -30,11 +51,12 @@ export default function EditTarget() {
   );
   const [error, setError] = useState('');
 
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
   useEffect(() => {
     if (!target) return;
 
-    setType(target.type);
-    setMetricType(target.metricType);
     setTargetValue(String(target.targetValue));
     setStartDate(target.startDate);
     setEndDate(target.endDate);
@@ -44,11 +66,36 @@ export default function EditTarget() {
 
   if (!context || !target) return null;
 
-  const { trips, categories, setTargets } = context;
+  const { currentUser, trips, categories, setTargets } = context;
 
   const saveChanges = async () => {
-    if (!targetValue.trim() || !startDate.trim() || !endDate.trim()) {
-      setError('Please fill in the target value, start date and end date.');
+    if (!selectedTripId || !selectedCategoryId) {
+      setError('Please choose a trip and category.');
+      return;
+    }
+
+    if (!targetValue.trim()) {
+      setError('Please enter your hours goal.');
+      return;
+    }
+
+    if (Number(targetValue) <= 0 || Number.isNaN(Number(targetValue))) {
+      setError('Please enter a valid number of hours greater than 0.');
+      return;
+    }
+
+    if (!startDate || !endDate) {
+      setError('Please choose a start date and end date.');
+      return;
+    }
+
+    if (endDate < startDate) {
+      setError('End date cannot be before the start date.');
+      return;
+    }
+
+    if (!currentUser) {
+      setError('You must be logged in to update a target.');
       return;
     }
 
@@ -59,24 +106,37 @@ export default function EditTarget() {
       .set({
         tripId: selectedTripId,
         categoryId: selectedCategoryId,
-        type,
-        metricType,
+        type: 'trip',
+        metricType: 'duration',
         targetValue: Number(targetValue),
-        startDate: startDate.trim(),
-        endDate: endDate.trim(),
+        startDate,
+        endDate,
       })
       .where(eq(targetsTable.id, Number(id)));
 
-    const rows = await db.select().from(targetsTable);
+    const rows = await db
+      .select()
+      .from(targetsTable)
+      .where(eq(targetsTable.userId, currentUser.id));
+
     setTargets(rows);
 
     router.back();
   };
 
   const deleteTarget = async () => {
+    if (!currentUser) {
+      setError('You must be logged in to delete a target.');
+      return;
+    }
+
     await db.delete(targetsTable).where(eq(targetsTable.id, Number(id)));
 
-    const rows = await db.select().from(targetsTable);
+    const rows = await db
+      .select()
+      .from(targetsTable)
+      .where(eq(targetsTable.userId, currentUser.id));
+
     setTargets(rows);
 
     router.back();
@@ -88,203 +148,180 @@ export default function EditTarget() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <ScreenHeader title="Edit Target" subtitle="Update your goal." />
+        <ScreenHeader
+          title="Edit Target"
+          subtitle="Update your hours goal for this trip."
+        />
 
-        <Text style={styles.label}>Target Type</Text>
-        <View style={styles.optionRow}>
-          {['weekly', 'monthly'].map((option) => {
-            const isSelected = type === option;
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Choose Trip</Text>
+          <View style={styles.optionRow}>
+            {trips.map((trip) => {
+              const isSelected = selectedTripId === trip.id;
 
-            return (
-              <Pressable
-                key={option}
-                accessibilityRole="button"
-                onPress={() => setType(option)}
-                style={[
-                  styles.optionButton,
-                  isSelected && styles.optionButtonSelected,
-                ]}
-              >
-                <Text
+              return (
+                <Pressable
+                  key={trip.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select trip ${trip.title}`}
+                  onPress={() => setSelectedTripId(trip.id)}
                   style={[
-                    styles.optionText,
-                    isSelected && styles.optionTextSelected,
+                    styles.optionButton,
+                    isSelected && styles.optionButtonSelected,
                   ]}
                 >
-                  {option}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSelected && styles.optionTextSelected,
+                    ]}
+                  >
+                    {trip.title}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-        <Text style={styles.label}>Metric</Text>
-        <View style={styles.optionRow}>
-          {['duration', 'count'].map((option) => {
-            const isSelected = metricType === option;
+          <Text style={styles.sectionTitle}>Choose Category</Text>
+          <View style={styles.optionRow}>
+            {categories.map((category) => {
+              const isSelected = selectedCategoryId === category.id;
 
-            return (
-              <Pressable
-                key={option}
-                accessibilityRole="button"
-                onPress={() => setMetricType(option)}
-                style={[
-                  styles.optionButton,
-                  isSelected && styles.optionButtonSelected,
-                ]}
-              >
-                <Text
+              return (
+                <Pressable
+                  key={category.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select category ${category.name}`}
+                  onPress={() => setSelectedCategoryId(category.id)}
                   style={[
-                    styles.optionText,
-                    isSelected && styles.optionTextSelected,
+                    styles.optionButton,
+                    isSelected && styles.optionButtonSelected,
                   ]}
                 >
-                  {option === 'duration' ? 'Hours' : 'Activities'}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSelected && styles.optionTextSelected,
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-        <View style={styles.form}>
-          <FormField
-            label={
-              metricType === 'duration'
-                ? 'Target Hours'
-                : 'Target Number of Activities'
-            }
-            value={targetValue}
-            onChangeText={setTargetValue}
-            placeholder={metricType === 'duration' ? 'e.g. 6' : 'e.g. 3'}
-          />
+          <Text style={styles.sectionTitle}>Hours Goal</Text>
+          <View style={styles.valueBox}>
+            <Pressable
+              style={styles.stepButton}
+              onPress={() =>
+                setTargetValue(String(Math.max(1, (Number(targetValue) || 1) - 1)))
+              }
+            >
+              <Text style={styles.stepButtonText}>−</Text>
+            </Pressable>
 
-          <FormField
-            label="Start Date"
-            value={startDate}
-            onChangeText={setStartDate}
-            placeholder="YYYY-MM-DD"
-          />
+            <Text style={styles.valueText}>{targetValue || '1'} hrs</Text>
 
-          <FormField
-            label="End Date"
-            value={endDate}
-            onChangeText={setEndDate}
-            placeholder="YYYY-MM-DD"
-          />
-        </View>
+            <Pressable
+              style={styles.stepButton}
+              onPress={() => setTargetValue(String((Number(targetValue) || 0) + 1))}
+            >
+              <Text style={styles.stepButtonText}>+</Text>
+            </Pressable>
+          </View>
 
-        <Text style={styles.label}>Trip</Text>
-        <View style={styles.optionRow}>
+          <Text style={styles.sectionTitle}>Target Period</Text>
+
+          <Text style={styles.inputLabel}>Start Date</Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => setSelectedTripId(null)}
-            style={[
-              styles.optionButton,
-              selectedTripId === null && styles.optionButtonSelected,
-            ]}
+            accessibilityLabel="Select start date"
+            onPress={() => setShowStartPicker(true)}
+            style={styles.dateButton}
           >
             <Text
               style={[
-                styles.optionText,
-                selectedTripId === null && styles.optionTextSelected,
+                styles.dateButtonText,
+                !startDate && styles.datePlaceholder,
               ]}
             >
-              All Trips
+              {formatIrishDate(startDate)}
             </Text>
           </Pressable>
 
-          {trips.map((trip) => {
-            const isSelected = selectedTripId === trip.id;
-
-            return (
-              <Pressable
-                key={trip.id}
-                accessibilityRole="button"
-                onPress={() => setSelectedTripId(trip.id)}
-                style={[
-                  styles.optionButton,
-                  isSelected && styles.optionButtonSelected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    isSelected && styles.optionTextSelected,
-                  ]}
-                >
-                  {trip.title}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.label}>Category</Text>
-        <View style={styles.optionRow}>
+          <Text style={styles.inputLabel}>End Date</Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => setSelectedCategoryId(null)}
-            style={[
-              styles.optionButton,
-              selectedCategoryId === null && styles.optionButtonSelected,
-            ]}
+            accessibilityLabel="Select end date"
+            onPress={() => setShowEndPicker(true)}
+            style={styles.dateButton}
           >
             <Text
               style={[
-                styles.optionText,
-                selectedCategoryId === null && styles.optionTextSelected,
+                styles.dateButtonText,
+                !endDate && styles.datePlaceholder,
               ]}
             >
-              All Categories
+              {formatIrishDate(endDate)}
             </Text>
           </Pressable>
 
-          {categories.map((category) => {
-            const isSelected = selectedCategoryId === category.id;
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            return (
-              <Pressable
-                key={category.id}
-                accessibilityRole="button"
-                onPress={() => setSelectedCategoryId(category.id)}
-                style={[
-                  styles.optionButton,
-                  isSelected && styles.optionButtonSelected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    isSelected && styles.optionTextSelected,
-                  ]}
-                >
-                  {category.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+          <PrimaryButton label="Save Changes" onPress={saveChanges} />
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          <View style={styles.buttonSpacing}>
+            <PrimaryButton
+              label="Delete Target"
+              variant="secondary"
+              onPress={deleteTarget}
+            />
+          </View>
 
-        <PrimaryButton label="Save Changes" onPress={saveChanges} />
-
-        <View style={styles.buttonSpacing}>
-          <PrimaryButton
-            label="Delete Target"
-            variant="secondary"
-            onPress={deleteTarget}
-          />
-        </View>
-
-        <View style={styles.buttonSpacing}>
-          <PrimaryButton
-            label="Cancel"
-            variant="secondary"
-            onPress={() => router.back()}
-          />
+          <View style={styles.buttonSpacing}>
+            <PrimaryButton
+              label="Cancel"
+              variant="secondary"
+              onPress={() => router.back()}
+            />
+          </View>
         </View>
       </ScrollView>
+
+      {showStartPicker && (
+        <DateTimePicker
+          value={startDate ? new Date(startDate) : new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(_, selectedDate) => {
+            if (Platform.OS !== 'ios') {
+              setShowStartPicker(false);
+            }
+            if (selectedDate) {
+              setStartDate(formatDateForStorage(selectedDate));
+            }
+          }}
+        />
+      )}
+
+      {showEndPicker && (
+        <DateTimePicker
+          value={endDate ? new Date(endDate) : new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(_, selectedDate) => {
+            if (Platform.OS !== 'ios') {
+              setShowEndPicker(false);
+            }
+            if (selectedDate) {
+              setEndDate(formatDateForStorage(selectedDate));
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -293,34 +330,43 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#F8FAFC',
     flex: 1,
-    padding: 20,
   },
   content: {
+    padding: 20,
     paddingBottom: 24,
   },
-  form: {
-    marginBottom: 6,
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
   },
-  label: {
+  sectionTitle: {
     color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  inputLabel: {
+    color: '#334155',
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 10,
+    marginBottom: 6,
+    marginTop: 4,
   },
   optionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 16,
   },
   optionButton: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#94A3B8',
+    borderColor: '#CBD5E1',
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   optionButtonSelected: {
     backgroundColor: '#0F172A',
@@ -329,11 +375,56 @@ const styles = StyleSheet.create({
   optionText: {
     color: '#0F172A',
     fontSize: 14,
-    fontWeight: '500',
-    textTransform: 'capitalize',
+    fontWeight: '600',
   },
   optionTextSelected: {
     color: '#FFFFFF',
+  },
+  valueBox: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#CBD5E1',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+    padding: 10,
+  },
+  stepButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  stepButtonText: {
+    color: '#0F172A',
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 24,
+  },
+  valueText: {
+    color: '#0F172A',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  dateButton: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  dateButtonText: {
+    color: '#0F172A',
+    fontSize: 15,
+  },
+  datePlaceholder: {
+    color: '#94A3B8',
   },
   errorText: {
     color: '#DC2626',

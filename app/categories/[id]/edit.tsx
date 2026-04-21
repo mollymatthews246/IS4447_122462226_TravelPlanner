@@ -8,7 +8,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Category, TripPlannerContext } from '../../../context/trip-planner-context';
+import {
+  Category,
+  TripPlannerContext,
+} from '../../../context/trip-planner-context';
 
 const colorOptions = [
   '#3B82F6',
@@ -86,13 +89,20 @@ export default function EditCategory() {
 
   if (!context || !category) return null;
 
-  const { setCategories } = context;
+  const { currentUser, setCategories } = context;
 
   const saveChanges = async () => {
     if (!name.trim() || !color.trim() || !icon.trim()) {
       setError('Please fill in the category name, colour and icon.');
       return;
     }
+
+    if (!currentUser) {
+      setError('You must be logged in to update a category.');
+      return;
+    }
+
+    setError('');
 
     await db
       .update(categoriesTable)
@@ -104,21 +114,28 @@ export default function EditCategory() {
       .where(eq(categoriesTable.id, Number(id)));
 
     const rows = await db
-  .select()
-  .from(categoriesTable)
-  .where(eq(categoriesTable.userId, currentUser!.id));
+      .select()
+      .from(categoriesTable)
+      .where(eq(categoriesTable.userId, currentUser.id));
+
     setCategories(rows);
 
     router.back();
   };
 
   const deleteCategory = async () => {
+    if (!currentUser) {
+      setError('You must be logged in to delete a category.');
+      return;
+    }
+
     await db.delete(categoriesTable).where(eq(categoriesTable.id, Number(id)));
 
     const rows = await db
-  .select()
-  .from(categoriesTable)
-  .where(eq(categoriesTable.userId, currentUser!.id));
+      .select()
+      .from(categoriesTable)
+      .where(eq(categoriesTable.userId, currentUser.id));
+
     setCategories(rows);
 
     router.back();
@@ -127,10 +144,7 @@ export default function EditCategory() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader
-          title="Edit Category"
-          subtitle={`Update ${category.name}`}
-        />
+        <ScreenHeader title="Edit Category" subtitle={`Update ${category.name}`} />
 
         <View style={styles.form}>
           <FormField
