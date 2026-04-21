@@ -129,6 +129,12 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    if (!hasLoaded) return;
+
+    void loadUserData(currentUser);
+  }, [currentUser, hasLoaded]);
+
+  useEffect(() => {
     const checkAuth = async () => {
       if (!hasLoaded) return;
 
@@ -155,7 +161,7 @@ export default function RootLayout() {
     };
 
     void checkAuth();
-  }, [currentUser, hasLoaded, pathname]);
+  }, [currentUser, hasLoaded, pathname, router]);
 
   if (!hasLoaded) {
     return <LoadingScreen progress={loadingProgress} />;
